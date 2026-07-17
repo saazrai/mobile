@@ -27,6 +27,10 @@ export default function ExamReviewScreen() {
     return <SafeAreaView style={[styles.center, { backgroundColor: t.sysBg }]}><ActivityIndicator color={t.blue} /></SafeAreaView>;
   }
   if (isError || !data) {
+    // Server returns 403 when `allow_review_after_submit` is false or the exam
+    // isn't completed — surface that as a "not available" state rather than the
+    // raw error. This is the review-gate guard: unauthorized direct navigation
+    // to /exam/{id}/review shows this screen with a back-to-results CTA.
     return (
       <SafeAreaView style={[styles.center, { backgroundColor: t.sysBg }]}>
         <Text variant="body" color="label2">Review isn't available for this exam.</Text>

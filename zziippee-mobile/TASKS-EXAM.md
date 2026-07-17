@@ -11,7 +11,7 @@ found via manual testing and fixed: the exams list had no error/empty state
 (a failed or empty response rendered as a blank screen), and the runner's radio
 buttons had no `borderWidth`, so unselected options showed no visible circle.
 One scope gap remains open — see task 2/5 below and
-[08-exam-spec.md §8.10](../docs/08-exam-spec.md#810-prototype-status-mock-only--no-real-backend-exists).
+[08-exam-spec.md §8.10](../docs/08-exam-spec.md#810-prototype-status-mock-only--no-real-backend-exists). Three post-build issues found via manual testing and fixed: the exams list had no error/empty state (a failed or empty response rendered as a blank screen), the runner's radio buttons had no `borderWidth`, so unselected options showed no visible circle, and the review screen had no guard against direct navigation when exam policy disallowed review access (the mock server returns 403 in that case; the error state now surfaces "Review isn't available for this exam" with a back-to-results CTA).
 
 ## Tasks
 
