@@ -9,7 +9,9 @@ import { Icon } from '../../../src/components/Icon';
 import { PressableScale } from '../../../src/components/PressableScale';
 import { ProgressRing } from '../../../src/components/ProgressRing';
 import { useReview, type ReviewQuestion } from '../../../src/api/hooks/practice';
-import { useTheme, spacing, radius, hairline, continuousCurve, shadow, type as ramp, type Palette } from '../../../src/theme/tokens';
+import { OptionContent } from '../../../src/components/OptionContent';
+import { questionMarkdownStyle } from '../../../src/components/markdownStyles';
+import { useTheme, spacing, radius, hairline, continuousCurve, shadow, type Palette } from '../../../src/theme/tokens';
 
 /** Post-quiz review — score, mastery, per-question correct/incorrect + rationale (docs/05 §K). */
 export default function ReviewScreen() {
@@ -88,6 +90,7 @@ export default function ReviewScreen() {
 }
 
 function QuestionCard({ q, index, t, delay }: { q: ReviewQuestion; index: number; t: Palette; delay: number }) {
+  const scheme = useColorScheme();
   const correct = q.is_correct ?? false;
   const statusColor = correct ? t.green : t.red;
 
@@ -103,7 +106,7 @@ function QuestionCard({ q, index, t, delay }: { q: ReviewQuestion; index: number
         <Text variant="footnote" color="label2" style={{ fontWeight: '600' }}>QUESTION {index}</Text>
       </View>
 
-      <Markdown style={{ body: { ...ramp.headline, color: t.label, marginTop: 2 } as any }}>{q.content}</Markdown>
+      <Markdown style={questionMarkdownStyle(scheme === 'dark')}>{q.content}</Markdown>
 
       <View style={styles.optList}>
         {q.options.map((opt, i) => {
@@ -115,12 +118,7 @@ function QuestionCard({ q, index, t, delay }: { q: ReviewQuestion; index: number
             <View key={i}>
               <View style={styles.optRow}>
                 <Icon name={isCorrectOpt ? 'check' : isSelected ? 'x' : 'chevron'} size={14} color={color} />
-                <Text
-                  variant="body"
-                  style={{ color: isCorrectOpt || isSelected ? t.label : t.label2, flex: 1 }}
-                >
-                  {opt}
-                </Text>
+                <OptionContent>{opt}</OptionContent>
               </View>
               {rationale && (
                 <Text variant="footnote" color={isCorrectOpt ? 'green' : isSelected ? 'red' : 'label2'} style={styles.optRationale}>

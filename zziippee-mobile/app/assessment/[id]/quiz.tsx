@@ -10,7 +10,9 @@ import { Icon } from '../../../src/components/Icon';
 import { PressableScale } from '../../../src/components/PressableScale';
 import { ProgressRing } from '../../../src/components/ProgressRing';
 import { useAssessment, useAnswer, type Question, type AnswerResult } from '../../../src/api/hooks/practice';
-import { useTheme, spacing, radius, hairline, continuousCurve, shadow, type as ramp } from '../../../src/theme/tokens';
+import { OptionContent } from '../../../src/components/OptionContent';
+import { questionMarkdownStyle } from '../../../src/components/markdownStyles';
+import { useTheme, spacing, radius, hairline, continuousCurve, shadow } from '../../../src/theme/tokens';
 
 /** Practice loop — iOS styling; scoring is server-authoritative (docs/04 §4.5). */
 export default function QuizRunner() {
@@ -78,7 +80,7 @@ export default function QuizRunner() {
 
       <ScrollView contentContainerStyle={{ padding: spacing.xl, paddingBottom: 140 }}>
         <Text variant="footnote" color="label2" style={styles.meta}>ADAPTIVE PRACTICE</Text>
-        <Markdown style={{ body: { ...ramp.headline, color: t.label, marginTop: spacing.md, marginBottom: spacing.xl } as any }}>
+        <Markdown style={questionMarkdownStyle(scheme === 'dark')}>
           {current.content}
         </Markdown>
 
@@ -94,7 +96,7 @@ export default function QuizRunner() {
                     <View style={[styles.radio, { borderColor: radioColor[s], backgroundColor: s === 'idle' ? 'transparent' : radioColor[s], borderWidth: 1.8 }, s !== 'idle' && { shadowColor: t.cell }]}>
                       {s !== 'idle' && <View style={[styles.dot, { backgroundColor: t.cell }]} />}
                     </View>
-                    <Text variant="body" style={{ flex: 1 }}>{opt}</Text>
+                    <OptionContent>{opt}</OptionContent>
                   </View>
                   {rationale && (
                     <Text variant="footnote" color={s === 'right' ? 'green' : s === 'wrong' ? 'red' : 'label2'} style={styles.optRationale}>
