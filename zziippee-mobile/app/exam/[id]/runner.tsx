@@ -504,7 +504,7 @@ const styles = StyleSheet.create({
   optCard: { borderRadius: radius.cell, overflow: 'hidden' },
   opt: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, minHeight: 44 },
   sep: { height: hairline },
-  radio: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.8, alignItems: 'center', justifyContent: 'center' },
   checkbox: { borderRadius: 6 },
   dot: { width: 8, height: 8, borderRadius: 4 },
   footWrap: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: spacing.xl, paddingBottom: spacing.sm },

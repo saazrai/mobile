@@ -15,7 +15,7 @@ export default function ExamsListScreen() {
   const t = useTheme();
   const router = useRouter();
   const { product } = useLocalSearchParams<{ product: string }>();
-  const { data, isLoading } = useExamSettings(product);
+  const { data, isLoading, isError, refetch, isRefetching } = useExamSettings(product);
   const start = useExamStart();
 
   const onStart = async (setting: ExamSetting) => {
@@ -39,13 +39,31 @@ export default function ExamsListScreen() {
 
       {isLoading ? (
         <View style={styles.center}><ActivityIndicator color={t.blue} /></View>
+      ) : isError || !data ? (
+        <View style={styles.center}>
+          <Text variant="body" color="label2" style={{ textAlign: 'center', paddingHorizontal: spacing.xl }}>
+            Couldn't load exams. Is the mock server running? (`npm run mock`)
+          </Text>
+          <PressableScale
+            style={[styles.cta, { backgroundColor: t.blue, marginTop: spacing.xl, paddingHorizontal: spacing.xl }, continuousCurve]}
+            onPress={() => refetch()}
+            disabled={isRefetching}
+          >
+            {isRefetching ? <ActivityIndicator color="#fff" /> : <Text variant="headline" color="onColor">Retry</Text>}
+          </PressableScale>
+        </View>
       ) : (
         <ScrollView contentContainerStyle={{ padding: spacing.xl, paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
-          {(data?.exam_settings ?? []).map((setting) => (
+          {data.exam_settings.length === 0 && (
+            <View style={[styles.center, { paddingTop: spacing.xxl }]}>
+              <Text variant="body" color="label2">No exam simulations are configured for this course yet.</Text>
+            </View>
+          )}
+          {data.exam_settings.map((setting) => (
             <ExamCard key={setting.id} setting={setting} t={t} busy={start.isPending} onStart={() => onStart(setting)} />
           ))}
 
-          {!!data?.user_exams.length && (
+          {!!data.user_exams.length && (
             <>
               <Text variant="footnote" color="label2" style={styles.sectionHeader}>PAST ATTEMPTS</Text>
               <View style={[styles.attemptsCard, { backgroundColor: t.cell }, continuousCurve, shadow.card]}>
