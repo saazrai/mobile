@@ -8,6 +8,18 @@ Exam-style deep-dive per domain — it's a triage pass to find out where real
 specs are still needed versus where the doc 03 sketch can be trusted. Verified
 against `/Users/saaz/Projects/zziippee` directly.
 
+**Update (2026-07-18):** this scan only checked for session-state landmines
+(the specific thing that went wrong with Exam). Full per-domain specs written
+afterward — `docs/10-auth-account-spec.md`, `docs/11-home-courses-progress-spec.md`,
+`docs/12-practice-spec.md`, `docs/13-study-content-spec.md` — found real,
+larger gaps this scan's narrower check didn't surface: Home/Dashboard's
+"continue"/streak/weakest-objective concepts are mostly fictional (doc 11
+§11.1), Flashcards/Videos have **no content model at all** (doc 13 §13.1, a
+bigger gap than "needs a JSON wrapper"), and Practice has its own
+answer-key-leakage issue similar to Exam's original one (doc 12 §12.1). "Verified-clean"
+below means *no session-state landmine* — it does not mean *fully
+ready to wrap*. Read the per-domain docs for the complete picture.
+
 ## Result: Exam was the exception, not the rule
 
 Every other domain checked is **verified-clean** on the session-state
