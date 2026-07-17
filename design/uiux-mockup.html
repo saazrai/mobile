@@ -1,0 +1,371 @@
+<title>SecureStart — Apple-grade UI</title>
+<style>
+  /* ============================================================
+     iOS / Apple TV design system — semantic tokens
+     ============================================================ */
+  :root{
+    color-scheme: light dark;
+    /* page (studio) */
+    --page:#e7e7 ; --page:#e9e9ee; --page2:#dedee4;
+    /* iOS grouped system */
+    --sys-bg:#f2f2f7;        /* systemGroupedBackground */
+    --cell:#ffffff;          /* secondarySystemGroupedBackground (rows) */
+    --cell-press:#d9d9de;
+    --label:#000000;
+    --label2:rgba(60,60,67,.60);   /* secondaryLabel */
+    --label3:rgba(60,60,67,.30);   /* tertiaryLabel / chevron */
+    --sep:rgba(60,60,67,.29);      /* separator (hairline) */
+    --blue:#007aff;
+    --green:#34c759; --red:#ff3b30; --orange:#ff9500; --indigo:#5856d6;
+    --fill:rgba(120,120,128,.12);
+    --material:rgba(249,249,252,.72);   /* nav/tab blur */
+    --hairline:.5px;
+    --card-radius:11px;
+    --bezel:#0a0a0c; --bezel-edge:#26262b;
+    --shadow: 0 40px 90px -40px rgba(20,22,35,.55);
+    --font: -apple-system, "SF Pro Text", "SF Pro Display", system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --page:#050506; --page2:#0c0c0e;
+      --sys-bg:#000000; --cell:#1c1c1e; --cell-press:#2c2c2e;
+      --label:#ffffff; --label2:rgba(235,235,245,.60); --label3:rgba(235,235,245,.30);
+      --sep:rgba(84,84,88,.65); --blue:#0a84ff;
+      --green:#30d158; --red:#ff453a; --orange:#ff9f0a; --indigo:#5e5ce6;
+      --fill:rgba(120,120,128,.24);
+      --material:rgba(30,30,32,.72);
+      --bezel:#000; --bezel-edge:#222226;
+      --shadow: 0 40px 90px -40px rgba(0,0,0,.85);
+    }
+  }
+  :root[data-theme="light"]{ --page:#e9e9ee; --page2:#dedee4; --sys-bg:#f2f2f7; --cell:#fff; --cell-press:#d9d9de; --label:#000; --label2:rgba(60,60,67,.6); --label3:rgba(60,60,67,.3); --sep:rgba(60,60,67,.29); --blue:#007aff; --fill:rgba(120,120,128,.12); --material:rgba(249,249,252,.72); --bezel:#0a0a0c; --bezel-edge:#26262b; --green:#34c759; --red:#ff3b30; --orange:#ff9500; --indigo:#5856d6; --shadow:0 40px 90px -40px rgba(20,22,35,.55);}
+  :root[data-theme="dark"]{ --page:#050506; --page2:#0c0c0e; --sys-bg:#000; --cell:#1c1c1e; --cell-press:#2c2c2e; --label:#fff; --label2:rgba(235,235,245,.6); --label3:rgba(235,235,245,.3); --sep:rgba(84,84,88,.65); --blue:#0a84ff; --fill:rgba(120,120,128,.24); --material:rgba(30,30,32,.72); --bezel:#000; --bezel-edge:#222226; --green:#30d158; --red:#ff453a; --orange:#ff9f0a; --indigo:#5e5ce6; --shadow:0 40px 90px -40px rgba(0,0,0,.85);}
+
+  *{box-sizing:border-box; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;}
+  html{-webkit-text-size-adjust:100%;}
+  body{margin:0; font-family:var(--font); color:var(--label);
+    background:radial-gradient(120% 90% at 50% -10%, var(--page2), var(--page));
+    min-height:100vh;}
+  .tnum{font-variant-numeric:tabular-nums;}
+  svg{display:block;}
+
+  /* ---------- page shell ---------- */
+  .wrap{max-width:1220px; margin:0 auto; padding:clamp(30px,5vw,74px) clamp(18px,4vw,44px) 90px;}
+  .eyebrow{font-size:12px; letter-spacing:.42em; text-transform:uppercase; color:var(--label2); font-weight:700;}
+  .display{font-size:clamp(2.3rem,5.4vw,4rem); line-height:1.02; letter-spacing:-.035em; font-weight:700; margin:.24em 0 0; max-width:14ch; text-wrap:balance;}
+  .lede{font-size:clamp(1.05rem,1.7vw,1.25rem); line-height:1.5; color:var(--label2); max-width:62ch; margin:18px 0 0; font-weight:450;}
+  .rule{height:var(--hairline); background:var(--sep); border:0; margin:44px 0;}
+  .sectitle{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin:56px 0 4px;}
+  .sectitle h2{font-size:clamp(1.5rem,2.6vw,2rem); letter-spacing:-.028em; font-weight:700; margin:0;}
+  .sectitle p{margin:0; color:var(--label2); font-size:.98rem;}
+
+  .stage{display:grid; grid-template-columns:repeat(auto-fill,minmax(288px,1fr)); gap:clamp(26px,3.2vw,48px); justify-items:center; margin-top:34px;}
+
+  /* ---------- device ---------- */
+  .device{width:300px; max-width:100%;}
+  .phone{position:relative; background:var(--bezel); border:1px solid var(--bezel-edge); border-radius:52px; padding:11px; box-shadow:var(--shadow);}
+  .island{position:absolute; top:20px; left:50%; transform:translateX(-50%); width:98px; height:30px; background:#000; border-radius:16px; z-index:20;}
+  .screen{position:relative; border-radius:42px; overflow:hidden; height:606px; background:var(--sys-bg); display:flex; flex-direction:column;}
+  .status{position:absolute; top:0; left:0; right:0; height:52px; display:flex; align-items:flex-end; justify-content:space-between; padding:0 26px 8px; z-index:15; pointer-events:none;}
+  .status .t{font-size:15px; font-weight:600; letter-spacing:-.01em; color:var(--label);}
+  .status.onDark .t, .status.onDark svg{color:#fff; fill:#fff;}
+  .status svg{fill:var(--label);}
+  .status .r{display:flex; align-items:center; gap:6px;}
+
+  .cap{margin-top:16px;}
+  .cap b{font-size:.96rem; letter-spacing:-.01em;}
+  .cap p{margin:4px 0 0; font-size:.8rem; color:var(--label2); line-height:1.45;}
+
+  /* ---------- iOS screen internals ---------- */
+  .view{flex:1; overflow:hidden; position:relative;}
+  .scroll{position:absolute; inset:0; padding-top:52px; overflow:hidden;}
+
+  /* large-title nav */
+  .largeTitle{padding:8px 20px 6px; font-size:34px; font-weight:700; letter-spacing:-.022em;}
+  .navsub{padding:0 20px; color:var(--label2); font-size:15px; margin-top:-2px;}
+  .inlineNav{position:absolute; top:0; left:0; right:0; height:52px; display:flex; align-items:flex-end; justify-content:center; padding-bottom:8px; font-size:16px; font-weight:600; z-index:14;}
+
+  /* grouped inset list */
+  .grp{margin:18px 16px 0; background:var(--cell); border-radius:var(--card-radius); overflow:hidden;}
+  .ghead{margin:22px 16px 7px; font-size:13px; letter-spacing:.02em; color:var(--label2); text-transform:uppercase; font-weight:600;}
+  .gfoot{margin:8px 16px 0; font-size:13px; line-height:1.4; color:var(--label2);}
+  .row{display:flex; align-items:center; gap:12px; padding:0 16px; min-height:44px; position:relative;}
+  .row + .row::before{content:""; position:absolute; top:0; left:16px; right:0; height:var(--hairline); background:var(--sep);}
+  .row.inset + .row.inset::before{left:52px;}
+  .row .ico{width:29px; height:29px; border-radius:7px; display:grid; place-items:center; flex:none;}
+  .row .ico svg{width:17px; height:17px; stroke:#fff; fill:none; stroke-width:1.9;}
+  .row .lab{flex:1; font-size:17px; letter-spacing:-.01em; min-width:0;}
+  .row .val{font-size:17px; color:var(--label2); letter-spacing:-.01em; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:right;}
+  .chev{width:8px; height:13px; stroke:var(--label3); stroke-width:2.4; fill:none; flex:none;}
+  .row .trail{display:flex; align-items:center; gap:7px; margin-left:auto;}
+
+  /* buttons */
+  .btn-blue{background:var(--blue); color:#fff; border:none; border-radius:12px; font-size:17px; font-weight:600; padding:14px; width:100%; letter-spacing:-.01em;}
+  .pill-done{background:var(--blue); color:#fff; border:none; border-radius:11px; font-size:16px; font-weight:600; padding:9px 20px;}
+  .grabber{width:36px; height:5px; border-radius:3px; background:var(--label3); margin:8px auto 0;}
+
+  /* ---------- Apple-TV cinematic ---------- */
+  .poster{position:relative; border-radius:18px; overflow:hidden; aspect-ratio:16/10; display:flex; align-items:flex-end; padding:16px; box-shadow:0 20px 40px -22px rgba(0,0,0,.5);}
+  .poster .veil{position:absolute; inset:0; background:linear-gradient(180deg, transparent 30%, rgba(0,0,0,.55));}
+  .poster .code{position:absolute; top:10px; right:16px; font-size:52px; font-weight:800; letter-spacing:-.04em; color:rgba(255,255,255,.16);}
+  .poster .meta{position:relative; color:#fff;}
+  .poster .meta .k{font-size:11px; letter-spacing:.16em; text-transform:uppercase; opacity:.85; font-weight:700;}
+  .poster .meta h4{margin:2px 0 0; font-size:21px; font-weight:700; letter-spacing:-.02em;}
+  .art-sec{background:linear-gradient(150deg,#1f3fae,#0b1f5e 55%,#071233);}
+  .art-cc{background:linear-gradient(150deg,#0e8f7e,#0a5a63 60%,#05242c);}
+  .art-exam{background:linear-gradient(150deg,#5b3fd6,#3a1f8f 55%,#1a0f45);}
+  .prow{display:flex; gap:14px; overflow:hidden; padding:2px 20px 4px; margin-top:6px;}
+  .prow .pcard{flex:none; width:150px;}
+  .prow .pcard .poster{aspect-ratio:2/3;}
+  .prow .pcard .ttl{font-size:14px; font-weight:600; margin-top:8px; letter-spacing:-.01em;}
+  .prow .pcard .sub{font-size:12px; color:var(--label2); margin-top:1px;}
+
+  .continueCard{margin:14px 20px 0; position:relative; border-radius:20px; overflow:hidden; aspect-ratio:16/9; display:flex; align-items:flex-end; padding:18px; box-shadow:0 24px 46px -24px rgba(0,0,0,.55);}
+  .playfab{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:56px; height:56px; border-radius:50%; background:rgba(255,255,255,.22); border:1px solid rgba(255,255,255,.35); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); display:grid; place-items:center;}
+  .playfab svg{width:22px; height:22px; fill:#fff; margin-left:3px;}
+  .progressline{position:absolute; left:18px; right:18px; bottom:14px; height:4px; border-radius:2px; background:rgba(255,255,255,.3);}
+  .progressline i{display:block; height:100%; border-radius:2px; background:#fff; width:44%;}
+
+  /* quiz */
+  .qwrap{padding:60px 20px 0;}
+  .qmeta{font-size:13px; color:var(--label2); font-weight:600; letter-spacing:-.01em;}
+  .qtext{font-size:22px; font-weight:600; letter-spacing:-.02em; line-height:1.28; margin:12px 0 20px;}
+  .optcard{background:var(--cell); border-radius:var(--card-radius); overflow:hidden;}
+  .opt{display:flex; align-items:center; gap:12px; padding:15px 16px; min-height:52px; position:relative; font-size:17px; letter-spacing:-.01em;}
+  .opt + .opt::before{content:""; position:absolute; top:0; left:16px; right:0; height:var(--hairline); background:var(--sep);}
+  .opt .radio{width:22px; height:22px; border-radius:50%; border:1.8px solid var(--label3); flex:none;}
+  .opt.sel .radio{border-color:var(--blue); background:var(--blue); box-shadow:inset 0 0 0 4px var(--cell);}
+  .opt.right .radio{border-color:var(--green); background:var(--green); box-shadow:inset 0 0 0 4px var(--cell);}
+  .opt.wrong .radio{border-color:var(--red); background:var(--red); box-shadow:inset 0 0 0 4px var(--cell);}
+  .footbar{position:absolute; left:0; right:0; bottom:0; padding:14px 20px calc(14px + 8px); background:linear-gradient(transparent, var(--sys-bg) 24%);}
+
+  /* flashcard */
+  .fc{position:absolute; top:70px; left:22px; right:22px; bottom:118px; border-radius:24px; background:var(--cell); display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:26px; box-shadow:0 28px 54px -26px rgba(0,0,0,.5); border:var(--hairline) solid var(--sep); transform:rotate(-6deg);}
+  .fc.peek{top:80px; bottom:128px; transform:rotate(0) scale(.945); opacity:.55; box-shadow:none; z-index:0;}
+  .fc .kick{font-size:12px; letter-spacing:.18em; text-transform:uppercase; color:var(--label3); font-weight:700;}
+  .fc .q{font-size:20px; font-weight:600; letter-spacing:-.02em; line-height:1.34; margin-top:12px; color:var(--label);}
+  .stamp{position:absolute; top:22px; left:22px; border:3px solid var(--green); color:var(--green); border-radius:9px; padding:2px 10px; font-weight:800; letter-spacing:.06em; font-size:18px; transform:rotate(-13deg);}
+  .fcactions{position:absolute; left:0; right:0; bottom:36px; display:flex; justify-content:center; gap:14px;}
+  .fcbtn{width:56px; height:56px; border-radius:50%; display:grid; place-items:center; background:var(--cell); box-shadow:0 10px 24px -10px rgba(0,0,0,.4); border:var(--hairline) solid var(--sep);}
+  .fcbtn svg{width:24px; height:24px; fill:none; stroke-width:2.4;}
+  .segs{position:absolute; top:14px; left:16px; right:16px; display:flex; gap:4px; z-index:10;}
+  .segs i{flex:1; height:3px; border-radius:2px; background:var(--fill);}
+  .segs i.on{background:var(--blue);}
+
+  /* reel */
+  .reel-note{position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; padding:40px 24px;}
+  .reel-top{position:absolute; top:60px; left:20px; right:20px; display:flex; justify-content:space-between; align-items:center; color:#fff; z-index:12;}
+
+  /* floating translucent tab bar (Apple-refined) */
+  .tabbar{position:absolute; left:0; right:0; bottom:0; height:83px; padding-bottom:20px; display:flex; align-items:center; justify-content:space-around; background:var(--material); -webkit-backdrop-filter:blur(22px) saturate(1.8); backdrop-filter:blur(22px) saturate(1.8); border-top:var(--hairline) solid var(--sep); z-index:12;}
+  .tab{display:flex; flex-direction:column; align-items:center; gap:4px; color:var(--label3);}
+  .tab.on{color:var(--blue);}
+  .tab svg{width:26px; height:26px; fill:none; stroke:currentColor; stroke-width:1.9;}
+  .tab.on svg{fill:currentColor; stroke:currentColor; stroke-width:.6;}
+  .tab span{font-size:10px; font-weight:600; letter-spacing:.01em;}
+
+  footer{margin-top:76px; padding-top:26px; border-top:var(--hairline) solid var(--sep); display:flex; flex-wrap:wrap; gap:8px 26px; justify-content:space-between; color:var(--label2); font-size:.86rem;}
+  footer b{color:var(--label);}
+
+  @media (prefers-reduced-motion:no-preference){
+    .device{animation:rise .55s cubic-bezier(.2,.7,.2,1) both;}
+    .stage .device:nth-child(2){animation-delay:.05s;} .stage .device:nth-child(3){animation-delay:.1s;}
+    @keyframes rise{from{opacity:0; transform:translateY(12px);} to{opacity:1; transform:none;}}
+  }
+</style>
+
+<!-- icon sprite -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="chev" viewBox="0 0 8 13"><path d="M1.5 1.5 6.5 6.5 1.5 11.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5M5 9.5V20h14V9.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-cards" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M7 3h10" stroke-linecap="round"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" stroke-linecap="round"/></symbol>
+  <symbol id="i-person" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" stroke-linecap="round"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l13-7.5z"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5zM4 20.5A2.5 2.5 0 0 1 6.5 18H20" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5zM3 13l9 5 9-5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-video" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2.5"/><path d="m16 10 5-3v10l-5-3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-brain" viewBox="0 0 24 24"><path d="M9 4a3 3 0 0 0-3 3 3 3 0 0 0-1 5 3 3 0 0 0 2 5 2.5 2.5 0 0 0 5 .3V4.2A2.2 2.2 0 0 0 9 4Z" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 5 5.5V11c0 4.5 3 7.5 7 9.5 4-2 7-5 7-9.5V5.5z" stroke-linecap="round" stroke-linejoin="round"/><path d="m9 11 2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z" stroke-linejoin="round"/><path d="M14 3v4h4" stroke-linejoin="round"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6Z" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 20a2 2 0 0 0 4 0" stroke-linecap="round"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke-linecap="round"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6 18 18M18 6 6 18" stroke-linecap="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5 10 17.5 19 7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="wifi" viewBox="0 0 16 12"><path d="M8 9.5a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6ZM3.8 6.4a6 6 0 0 1 8.4 0M1.6 4.1a9 9 0 0 1 12.8 0"/></symbol>
+  <symbol id="cell" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx=".6"/><rect x="5" y="5.5" width="3" height="6.5" rx=".6"/><rect x="10" y="3" width="3" height="9" rx=".6"/><rect x="15" y="0.5" width="3" height="11.5" rx=".6"/></symbol>
+  <symbol id="bat" viewBox="0 0 26 12"><rect x=".7" y=".7" width="21" height="10.6" rx="3" fill="none" stroke="currentColor" stroke-width="1"/><rect x="2.4" y="2.4" width="15" height="7.2" rx="1.6"/><rect x="23" y="4" width="1.8" height="4" rx=".9"/></symbol>
+</defs></svg>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">SecureStart · iOS &amp; Android</div>
+    <h1 class="display">Certification prep, built to Apple's bar.</h1>
+    <p class="lede">A rebuilt design language for the zziippee mobile app — the SF&nbsp;Pro type ramp, iOS grouped-inset lists with hairline separators, translucent materials, and Apple&nbsp;TV cinematic depth for content. The last screen intentionally matches the system <b>Account Settings</b> modal, cell-for-cell, to show the pattern is exact — not approximated.</p>
+    <hr class="rule">
+  </header>
+
+  <!-- ===== Home — Apple TV cinematic ===== -->
+  <div class="sectitle"><h2>Home</h2><p>— Apple&nbsp;TV cinematic: continue where you left off, then your library.</p></div>
+  <div class="stage">
+    <div class="device">
+      <div class="phone"><div class="island"></div><div class="screen">
+        <div class="status"><span class="t tnum">9:41</span><span class="r"><svg width="18" height="12" viewBox="0 0 18 12"><use href="#cell"/></svg><svg width="16" height="12" viewBox="0 0 16 12"><use href="#wifi"/></svg><svg width="26" height="12" viewBox="0 0 26 12"><use href="#bat"/></svg></span></div>
+        <div class="view"><div class="scroll">
+          <div class="largeTitle">Study</div>
+          <div class="navsub">Tuesday, 17 July</div>
+
+          <div class="continueCard art-sec">
+            <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 35%,rgba(0,0,0,.6))"></div>
+            <div class="playfab"><svg viewBox="0 0 24 24"><use href="#i-play"/></svg></div>
+            <div style="position:relative;color:#fff">
+              <div style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;opacity:.85;font-weight:700">Continue · Security+</div>
+              <div style="font-size:19px;font-weight:700;letter-spacing:-.02em;margin-top:2px">2.3 Cryptographic solutions</div>
+            </div>
+            <div class="progressline"><i></i></div>
+          </div>
+
+          <div class="ghead" style="margin-top:22px">Your courses</div>
+          <div class="prow">
+            <div class="pcard"><div class="poster art-sec"><span class="code">S+</span><div class="veil"></div><div class="meta"><div class="k">64% ready</div><h4 style="font-size:17px">Security+</h4></div></div></div>
+            <div class="pcard"><div class="poster art-cc"><span class="code">CC</span><div class="veil"></div><div class="meta"><div class="k">21% ready</div><h4 style="font-size:17px">ISC2 CC</h4></div></div></div>
+          </div>
+        </div></div>
+        <nav class="tabbar">
+          <span class="tab on"><svg viewBox="0 0 24 24"><use href="#i-home"/></svg><span>Study</span></span>
+          <span class="tab"><svg viewBox="0 0 24 24"><use href="#i-cards"/></svg><span>Courses</span></span>
+          <span class="tab"><svg viewBox="0 0 24 24"><use href="#i-chart"/></svg><span>Progress</span></span>
+          <span class="tab"><svg viewBox="0 0 24 24"><use href="#i-person"/></svg><span>Account</span></span>
+        </nav>
+      </div></div>
+      <div class="cap"><b>Home</b><p>Large-title nav · cinematic Continue card · poster library shelf.</p></div>
+    </div>
+
+    <!-- ===== Course — hero + grouped mode list ===== -->
+    <div class="device">
+      <div class="phone"><div class="island"></div><div class="screen">
+        <div class="status onDark"><span class="t tnum">9:41</span><span class="r"><svg width="18" height="12"><use href="#cell"/></svg><svg width="16" height="12"><use href="#wifi"/></svg><svg width="26" height="12"><use href="#bat"/></svg></span></div>
+        <div class="view">
+          <div class="poster art-sec" style="border-radius:0;aspect-ratio:auto;height:210px;align-items:flex-end">
+            <span class="code" style="font-size:96px;top:26px;right:20px">S+</span><div class="veil"></div>
+            <div class="meta" style="padding:0 4px 4px"><div class="k">CompTIA · SY0-701</div><h4 style="font-size:26px">Security+</h4></div>
+          </div>
+          <div class="scroll" style="padding-top:0;top:200px;background:var(--sys-bg);border-radius:16px 16px 0 0">
+            <div class="grp" style="margin-top:20px">
+              <a class="row inset"><span class="ico" style="background:var(--blue)"><svg viewBox="0 0 24 24"><use href="#i-brain"/></svg></span><span class="lab">Practice</span><span class="trail"><span class="val">Adaptive</span><svg class="chev"><use href="#chev"/></svg></span></a>
+              <a class="row inset"><span class="ico" style="background:var(--indigo)"><svg viewBox="0 0 24 24"><use href="#i-book"/></svg></span><span class="lab">Study notes</span><svg class="chev" style="margin-left:auto"><use href="#chev"/></svg></a>
+              <a class="row inset"><span class="ico" style="background:var(--orange)"><svg viewBox="0 0 24 24"><use href="#i-layers"/></svg></span><span class="lab">Flashcards</span><span class="trail"><span class="val">24</span><svg class="chev"><use href="#chev"/></svg></span></a>
+              <a class="row inset"><span class="ico" style="background:var(--red)"><svg viewBox="0 0 24 24"><use href="#i-video"/></svg></span><span class="lab">Videos</span><svg class="chev" style="margin-left:auto"><use href="#chev"/></svg></a>
+            </div>
+            <div class="grp">
+              <a class="row inset"><span class="ico" style="background:var(--green)"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></span><span class="lab">Exam simulation</span><span class="trail"><span class="val">90 · 90m</span><svg class="chev"><use href="#chev"/></svg></span></a>
+            </div>
+            <div class="gfoot">Performance-based questions are available on the web app (desktop recommended).</div>
+          </div>
+        </div>
+      </div></div>
+      <div class="cap"><b>Course</b><p>Cinematic hero over a grouped-inset mode list with SF-symbol-style glyphs.</p></div>
+    </div>
+
+    <!-- ===== Quiz runner ===== -->
+    <div class="device">
+      <div class="phone"><div class="island"></div><div class="screen">
+        <div class="status"><span class="t tnum">9:41</span><span class="r"><svg width="18" height="12"><use href="#cell"/></svg><svg width="16" height="12"><use href="#wifi"/></svg><svg width="26" height="12"><use href="#bat"/></svg></span></div>
+        <div class="inlineNav" style="justify-content:space-between;padding:0 18px 8px"><svg width="20" height="20" style="stroke:var(--blue);fill:none;stroke-width:2"><use href="#i-x"/></svg><span>Practice</span><span style="color:var(--label2);font-weight:500;font-size:15px" class="tnum">4</span></div>
+        <div class="view">
+          <div class="qwrap">
+            <div class="qmeta">OBJECTIVE 2.3 · ADAPTIVE</div>
+            <div class="qtext">Which algorithm provides confidentiality using a symmetric block cipher?</div>
+            <div class="optcard">
+              <div class="opt"><span class="radio"></span>RSA-2048</div>
+              <div class="opt sel"><span class="radio"></span>AES-256</div>
+              <div class="opt"><span class="radio"></span>SHA-256</div>
+              <div class="opt"><span class="radio"></span>ECDSA</div>
+            </div>
+          </div>
+          <div class="footbar"><button class="btn-blue">Submit</button></div>
+        </div>
+      </div></div>
+      <div class="cap"><b>Quiz runner</b><p>Selectable grouped rows · single blue primary action pinned to the safe area.</p></div>
+    </div>
+  </div>
+
+  <!-- ===== Immersive ===== -->
+  <div class="sectitle"><h2>Immersive study</h2><p>— gesture-first, full-bleed. Vertical moves through the set, horizontal grades it.</p></div>
+  <div class="stage">
+    <!-- Flashcards -->
+    <div class="device">
+      <div class="phone"><div class="island"></div><div class="screen">
+        <div class="status"><span class="t tnum">9:41</span><span class="r"><svg width="18" height="12"><use href="#cell"/></svg><svg width="16" height="12"><use href="#wifi"/></svg><svg width="26" height="12"><use href="#bat"/></svg></span></div>
+        <div class="view">
+          <div class="segs"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="reel-top" style="top:62px;color:var(--label2)"><svg width="18" height="18" style="stroke:var(--label2);fill:none;stroke-width:2"><use href="#i-x"/></svg><span style="font-weight:600;font-size:15px;color:var(--label)">Cryptography</span><span class="tnum" style="font-size:15px">8/24</span></div>
+          <div class="fc peek"></div>
+          <div class="fc">
+            <div class="stamp">GOT IT</div>
+            <div class="kick">Tap to flip</div>
+            <div class="q">What property does hashing provide that encryption alone does not?</div>
+          </div>
+          <div class="fcactions">
+            <span class="fcbtn"><svg viewBox="0 0 24 24" style="stroke:var(--red)"><use href="#i-x"/></svg></span>
+            <span class="fcbtn"><svg viewBox="0 0 24 24" style="stroke:var(--green)"><use href="#i-check"/></svg></span>
+          </div>
+        </div>
+      </div></div>
+      <div class="cap"><b>Flashcards</b><p>Swipe → know · ← again · tap to flip. Story segments; peek of the next card.</p></div>
+    </div>
+
+    <!-- Study notes reel -->
+    <div class="device">
+      <div class="phone"><div class="island"></div><div class="screen">
+        <div class="status onDark"><span class="t tnum">9:41</span><span class="r"><svg width="18" height="12"><use href="#cell"/></svg><svg width="16" height="12"><use href="#wifi"/></svg><svg width="26" height="12"><use href="#bat"/></svg></span></div>
+        <div class="view" style="background:linear-gradient(165deg,#132a5e,#08122e 72%)">
+          <div class="segs"><i class="on" style="background:#fff"></i><i class="on" style="background:#fff"></i><i style="background:rgba(255,255,255,.3)"></i><i style="background:rgba(255,255,255,.3)"></i><i style="background:rgba(255,255,255,.3)"></i></div>
+          <div class="reel-top"><svg width="18" height="18" style="stroke:#fff;fill:none;stroke-width:2"><use href="#i-x"/></svg><span style="font-weight:600">2.3 Cryptography</span><svg width="20" height="20" style="stroke:#fff;fill:none;stroke-width:1.8"><use href="#i-shield"/></svg></div>
+          <div class="reel-note">
+            <div style="font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#96abff;font-weight:700">Symmetric encryption</div>
+            <div style="color:#fff;font-size:26px;font-weight:700;letter-spacing:-.025em;line-height:1.28;margin-top:12px;text-wrap:balance">One shared key encrypts and decrypts. Fast — built for bulk data.</div>
+            <div style="color:rgba(255,255,255,.82);font-size:16px;line-height:1.55;margin-top:16px">AES is the workhorse: a 128/192/256-bit block cipher. GCM mode layers on authentication.</div>
+          </div>
+          <div style="position:absolute;right:16px;bottom:36px;color:rgba(255,255,255,.72);font-size:12px;font-weight:700;text-align:center">↑<br>next</div>
+        </div>
+      </div></div>
+      <div class="cap"><b>Study Notes</b><p>Vertical reel · swipe ↕ blocks · double-tap to save. Cinematic type.</p></div>
+    </div>
+
+    <!-- ===== Account Settings — exact iOS grouped modal match ===== -->
+    <div class="device">
+      <div class="phone"><div class="island"></div><div class="screen">
+        <div class="status"><span class="t tnum">9:41</span><span class="r"><svg width="18" height="12"><use href="#cell"/></svg><svg width="16" height="12"><use href="#wifi"/></svg><svg width="26" height="12"><use href="#bat"/></svg></span></div>
+        <div class="view" style="background:var(--sys-bg)">
+          <div class="scroll" style="padding-top:44px">
+            <div class="grabber"></div>
+            <div style="padding:14px 20px 2px;font-size:26px;font-weight:700;letter-spacing:-.02em">Account</div>
+            <div class="grp">
+              <a class="row"><span class="lab">SecureStart Account</span><span class="trail"><span class="val">saaz.rai@gmail.com</span><svg class="chev"><use href="#chev"/></svg></span></a>
+            </div>
+            <div class="gfoot">Your enrollments and progress are synced to this account across your devices.</div>
+            <div class="grp">
+              <a class="row"><span class="lab">Notifications</span><span class="trail"><span class="val">Reminders</span><svg class="chev"><use href="#chev"/></svg></span></a>
+              <a class="row"><span class="lab">Appearance</span><span class="trail"><span class="val">System</span><svg class="chev"><use href="#chev"/></svg></span></a>
+              <a class="row"><span class="lab">Downloads</span><span class="trail"><span class="val">Wi-Fi only</span><svg class="chev"><use href="#chev"/></svg></span></a>
+            </div>
+            <div class="grp">
+              <a class="row"><span class="lab">Privacy &amp; Data</span><svg class="chev" style="margin-left:auto"><use href="#chev"/></svg></a>
+              <a class="row"><span class="lab">Export My Data</span><svg class="chev" style="margin-left:auto"><use href="#chev"/></svg></a>
+              <a class="row"><span class="lab" style="color:var(--red)">Delete Account</span><svg class="chev" style="margin-left:auto"><use href="#chev"/></svg></a>
+            </div>
+            <div style="padding:22px 20px;display:flex;justify-content:flex-end"><button class="pill-done">Done</button></div>
+          </div>
+        </div>
+      </div></div>
+      <div class="cap"><b>Account</b><p>The reference modal, matched cell-for-cell: grouped inset list, right-aligned values, chevrons, section footer, blue <i>Done</i>.</p></div>
+    </div>
+  </div>
+
+  <footer>
+    <span>System: SF Pro ramp · iOS semantic grays · hairline separators · translucent materials · Apple&nbsp;TV depth.</span>
+    <span><b>Light &amp; dark</b> · toggles with the viewer's theme.</span>
+  </footer>
+</div>

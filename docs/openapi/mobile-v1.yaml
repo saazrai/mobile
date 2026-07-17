@@ -1,0 +1,1011 @@
+openapi: 3.1.0
+info:
+  title: zziippee Mobile API
+  version: 1.0.0
+  description: >
+    Token-authenticated JSON API (Laravel Sanctum) powering the zziippee /
+    SecureStart iOS & Android apps. Reuses the existing Laravel domain Services
+    (AdaptivePractice, LearnerProficiency, Exam engines, Enrollment). This is the
+    contract of record — stand up a mock server (Prism/Stoplight) from it so the
+    mobile team is never blocked on the backend.
+  contact:
+    name: zziippee mobile
+servers:
+  - url: https://zziippee.com/api/v1
+    description: Production
+  - url: https://zziippee.laravel.cloud/api/v1
+    description: UAT
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Auth
+  - name: Account
+  - name: Enrollments
+  - name: Curriculum
+  - name: Practice
+  - name: Exams
+  - name: Study
+
+paths:
+  # ---------------- AUTH ----------------
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new account
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password, device_name]
+              properties:
+                name: { type: string }
+                email: { type: string, format: email }
+                password: { type: string, format: password, minLength: 8 }
+                device_name: { type: string, example: "Aarav's iPhone" }
+      responses:
+        '201': { $ref: '#/components/responses/AuthTokenResponse' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Log in with email & password
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, device_name]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, format: password }
+                device_name: { type: string }
+      responses:
+        '200': { $ref: '#/components/responses/AuthTokenResponse' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /auth/social/google:
+    post:
+      tags: [Auth]
+      summary: Exchange a Google id_token for a Sanctum token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id_token, device_name]
+              properties:
+                id_token: { type: string, description: Google OIDC id_token from the native SDK }
+                device_name: { type: string }
+      responses:
+        '200': { $ref: '#/components/responses/AuthTokenResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /auth/email/send-code:
+    post:
+      tags: [Auth]
+      summary: Send an email verification code (throttled 3/min)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties: { email: { type: string, format: email } }
+      responses:
+        '200': { $ref: '#/components/responses/Message' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /auth/email/verify-code:
+    post:
+      tags: [Auth]
+      summary: Verify an email code (throttled 5/min)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, code]
+              properties:
+                email: { type: string, format: email }
+                code: { type: string, example: "482913" }
+      responses:
+        '200': { $ref: '#/components/responses/Message' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /auth/forgot-password:
+    post:
+      tags: [Auth]
+      summary: Request a password reset link
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties: { email: { type: string, format: email } }
+      responses:
+        '200': { $ref: '#/components/responses/Message' }
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Current authenticated user
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Revoke the current access token
+      responses:
+        '200': { $ref: '#/components/responses/Message' }
+
+  /account:
+    delete:
+      tags: [Account]
+      summary: Delete the account (GDPR / store data-deletion requirement)
+      responses:
+        '200': { $ref: '#/components/responses/Message' }
+
+  # ---------------- ENROLLMENTS / HOME ----------------
+  /enrollments:
+    get:
+      tags: [Enrollments]
+      summary: My courses (active & expired) with progress summary
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Enrollment' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /dashboard:
+    get:
+      tags: [Enrollments]
+      summary: Home overview — continue card, weakest objective, streak, mastery rollup
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Dashboard' }
+
+  /learn/{product}:
+    get:
+      tags: [Enrollments]
+      summary: Course home — nav tiles (product types), course meta, exam settings
+      parameters: [ { $ref: '#/components/parameters/Product' } ]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/CourseHome' }
+        '403': { $ref: '#/components/responses/NotEnrolled' }
+
+  # ---------------- CURRICULUM ----------------
+  /learn/{product}/domains:
+    get:
+      tags: [Curriculum]
+      summary: Domains → objectives, question counts, per-objective mastery & latest assessment
+      parameters: [ { $ref: '#/components/parameters/Product' } ]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Domain' }
+        '403': { $ref: '#/components/responses/NotEnrolled' }
+
+  /learn/{product}/objectives/{objective}:
+    get:
+      tags: [Curriculum]
+      summary: Objective detail — totals, best score, adaptive bounds, topics, resumable assessment
+      parameters:
+        - { $ref: '#/components/parameters/Product' }
+        - { $ref: '#/components/parameters/Objective' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/ObjectiveDetail' }
+        '403': { $ref: '#/components/responses/NotEnrolled' }
+
+  # ---------------- PRACTICE ----------------
+  /practice/objectives/{objective}/start:
+    post:
+      tags: [Practice]
+      summary: Start an adaptive practice assessment for an objective
+      parameters: [ { $ref: '#/components/parameters/Objective' } ]
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/AssessmentState' }
+        '403': { $ref: '#/components/responses/NotEnrolled' }
+        '422':
+          description: No questions available for this objective yet
+
+  /practice/domains/{domain}/start:
+    post:
+      tags: [Practice]
+      summary: Start a domain test assessment
+      parameters: [ { $ref: '#/components/parameters/Domain' } ]
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/AssessmentState' }
+        '403': { $ref: '#/components/responses/NotEnrolled' }
+
+  /assessments/{assessment}:
+    get:
+      tags: [Practice]
+      summary: Current assessment state (resume-aware — objective or domain)
+      parameters: [ { $ref: '#/components/parameters/Assessment' } ]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/AssessmentState' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /assessments/{assessment}/answer:
+    post:
+      tags: [Practice]
+      summary: Submit an answer; server scores it and returns the next question or completion
+      description: >
+        Correctness, difficulty selection, mastery and scoring are decided
+        server-side. correct_options & justifications are returned only after
+        submit (reveal rule). When is_done is true, the assessment is completed
+        and mastery is returned.
+      parameters: [ { $ref: '#/components/parameters/Assessment' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AnswerRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/AnswerResult' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /assessments/{assessment}/pause:
+    post:
+      tags: [Practice]
+      summary: Pause an in-progress assessment (snapshots elapsed time)
+      parameters: [ { $ref: '#/components/parameters/Assessment' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [elapsed_seconds]
+              properties: { elapsed_seconds: { type: integer, minimum: 0 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties: { paused: { type: boolean } }
+
+  /assessments/{assessment}/review:
+    get:
+      tags: [Practice]
+      summary: Completed-assessment review — score, mastery, per-question detail
+      parameters: [ { $ref: '#/components/parameters/Assessment' } ]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/AssessmentReview' }
+
+  # ---------------- EXAMS ----------------
+  /learn/{product}/exams:
+    get:
+      tags: [Exams]
+      summary: Available exam simulations for the course
+      parameters: [ { $ref: '#/components/parameters/Product' } ]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/ExamSetting' }
+
+  /exams/{examSetting}/start:
+    post:
+      tags: [Exams]
+      summary: Start a timed exam simulation
+      parameters:
+        - name: examSetting
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/ExamState' }
+
+  /exams/{assessment}:
+    get:
+      tags: [Exams]
+      summary: Current exam state (resume) — question, index, remaining_seconds
+      parameters: [ { $ref: '#/components/parameters/ExamAssessment' } ]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/ExamState' }
+
+  /exams/{assessment}/submit-answer:
+    post:
+      tags: [Exams]
+      summary: Submit an exam answer (throttled)
+      parameters: [ { $ref: '#/components/parameters/ExamAssessment' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [question_id, selected_options]
+              properties:
+                question_id: { type: integer }
+                selected_options:
+                  type: array
+                  items: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/ExamState' }
+
+  /exams/{assessment}/heartbeat:
+    post:
+      tags: [Exams]
+      summary: Keepalive; returns server-authoritative remaining_seconds
+      parameters: [ { $ref: '#/components/parameters/ExamAssessment' } ]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      remaining_seconds: { type: integer }
+                      status: { $ref: '#/components/schemas/AssessmentStatus' }
+
+  /exams/{assessment}/pause:
+    post:
+      tags: [Exams]
+      summary: Pause the exam
+      parameters: [ { $ref: '#/components/parameters/ExamAssessment' } ]
+      responses:
+        '200': { $ref: '#/components/responses/Message' }
+
+  /exams/{assessment}/end:
+    post:
+      tags: [Exams]
+      summary: Finalize the exam (or auto-finalized on timer expiry)
+      parameters: [ { $ref: '#/components/parameters/ExamAssessment' } ]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/ExamResults' }
+
+  /exams/{assessment}/results:
+    get:
+      tags: [Exams]
+      summary: Exam outcome — pass/fail, score, per-domain breakdown
+      parameters: [ { $ref: '#/components/parameters/ExamAssessment' } ]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/ExamResults' }
+
+  /exams/{assessment}/review:
+    get:
+      tags: [Exams]
+      summary: Full exam answer review
+      parameters: [ { $ref: '#/components/parameters/ExamAssessment' } ]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/AssessmentReview' }
+
+  # ---------------- STUDY ----------------
+  /learn/{product}/study-notes:
+    get:
+      tags: [Study]
+      summary: Study-note topic list
+      parameters: [ { $ref: '#/components/parameters/Product' } ]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/StudyTopic' }
+
+  /learn/{product}/study-notes/{topicSlug}:
+    get:
+      tags: [Study]
+      summary: Study-note blocks for a topic (sanitized content)
+      parameters:
+        - { $ref: '#/components/parameters/Product' }
+        - name: topicSlug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/StudyNote' }
+
+  /learn/{product}/flashcards:
+    get:
+      tags: [Study]
+      summary: Flashcard decks for the course
+      parameters: [ { $ref: '#/components/parameters/Product' } ]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Flashcard' }
+
+  /learn/{product}/videos:
+    get:
+      tags: [Study]
+      summary: Video resources for the course
+      parameters: [ { $ref: '#/components/parameters/Product' } ]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Video' }
+
+# ==================== COMPONENTS ====================
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Laravel Sanctum personal access token
+
+  parameters:
+    Product:
+      name: product
+      in: path
+      required: true
+      description: Product slug
+      schema: { type: string }
+    Objective:
+      name: objective
+      in: path
+      required: true
+      description: Objective slug or id
+      schema: { type: string }
+    Domain:
+      name: domain
+      in: path
+      required: true
+      schema: { type: string }
+    Assessment:
+      name: assessment
+      in: path
+      required: true
+      description: Assessment UUID
+      schema: { type: string, format: uuid }
+    ExamAssessment:
+      name: assessment
+      in: path
+      required: true
+      description: Exam assessment UUID
+      schema: { type: string, format: uuid }
+
+  responses:
+    AuthTokenResponse:
+      description: Authenticated
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  token: { type: string, example: "12|xR3...sanctum" }
+                  user: { $ref: '#/components/schemas/User' }
+                  enrollments:
+                    type: array
+                    items: { $ref: '#/components/schemas/Enrollment' }
+    Message:
+      description: Simple message envelope
+      content:
+        application/json:
+          schema:
+            type: object
+            properties: { message: { type: string } }
+    ValidationError:
+      description: Unprocessable entity
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: Missing or invalid token
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: Not the owner of this resource
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotEnrolled:
+      description: No active enrollment for this product
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    TooManyRequests:
+      description: Rate limited
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        message: { type: string }
+        code: { type: string, nullable: true }
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string }
+
+    AssessmentStatus:
+      type: string
+      enum: [in_progress, paused, completed]
+
+    User:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: string, format: email }
+        email_verified: { type: boolean }
+        roles:
+          type: array
+          items: { type: string }
+
+    Enrollment:
+      type: object
+      properties:
+        id: { type: integer }
+        product:
+          type: object
+          properties:
+            id: { type: integer }
+            name: { type: string }
+            slug: { type: string }
+        course_code: { type: string, example: SY0-701 }
+        status: { type: string, enum: [active, expired, revoked] }
+        expires_at: { type: string, format: date-time, nullable: true }
+        mastery_percent: { type: number, example: 64 }
+
+    Dashboard:
+      type: object
+      properties:
+        streak_days: { type: integer }
+        continue:
+          nullable: true
+          type: object
+          properties:
+            assessment_id: { type: string, format: uuid }
+            kind: { type: string, enum: [objective, domain, exam] }
+            product_slug: { type: string }
+            label: { type: string, example: "Security+ · Objective 2.3" }
+            progress_percent: { type: number }
+        weakest_objective:
+          nullable: true
+          $ref: '#/components/schemas/ObjectiveSummary'
+        mastery_rollup: { type: number, example: 64 }
+
+    CourseHome:
+      type: object
+      properties:
+        product:
+          type: object
+          properties:
+            id: { type: integer }
+            name: { type: string }
+            slug: { type: string }
+        course:
+          type: object
+          properties:
+            id: { type: integer }
+            name: { type: string }
+            code: { type: string }
+        tiles:
+          type: array
+          description: Product-type nav tiles (practice, study-notes, flashcards, videos, exams)
+          items:
+            type: object
+            properties:
+              slug: { type: string }
+              name: { type: string }
+              enabled: { type: boolean }
+
+    Domain:
+      type: object
+      properties:
+        id: { type: integer }
+        number: { type: string, example: "2" }
+        name: { type: string }
+        slug: { type: string }
+        weight_percentage: { type: number, nullable: true }
+        mastery_percent: { type: number, nullable: true }
+        objectives:
+          type: array
+          items: { $ref: '#/components/schemas/ObjectiveSummary' }
+
+    ObjectiveSummary:
+      type: object
+      properties:
+        id: { type: integer }
+        number: { type: string, example: "2.3" }
+        name: { type: string }
+        slug: { type: string }
+        questions_count: { type: integer }
+        mastery_percent: { type: number, nullable: true }
+        latest_assessment:
+          nullable: true
+          type: object
+          properties:
+            id: { type: string, format: uuid }
+            status: { $ref: '#/components/schemas/AssessmentStatus' }
+            score: { type: number, nullable: true }
+
+    ObjectiveDetail:
+      allOf:
+        - $ref: '#/components/schemas/ObjectiveSummary'
+        - type: object
+          properties:
+            best_score: { type: number }
+            completed_assessments: { type: integer }
+            adaptive_bounds:
+              type: object
+              properties:
+                min: { type: integer }
+                max: { type: integer }
+            topics:
+              type: array
+              items:
+                type: object
+                properties:
+                  id: { type: integer }
+                  name: { type: string }
+                  concepts_count: { type: integer }
+            resumable_assessment_id: { type: string, format: uuid, nullable: true }
+
+    Question:
+      type: object
+      description: Options are pre-shuffled server-side; app renders as received.
+      properties:
+        id: { type: integer }
+        content: { type: string, description: Sanitized HTML/markdown }
+        type:
+          type: object
+          properties:
+            id: { type: integer }
+            name: { type: string, example: multiple_choice }
+        options:
+          type: array
+          items: { type: string }
+        expected_selection_count: { type: integer, minimum: 1 }
+        difficulty_id: { type: integer, minimum: 1, maximum: 5 }
+
+    AdaptiveProgress:
+      type: object
+      properties:
+        answered: { type: integer }
+        estimatedTotal: { type: integer }
+        currentDifficulty: { type: integer }
+        minQuestions: { type: integer }
+
+    AssessmentState:
+      type: object
+      properties:
+        assessment_id: { type: string, format: uuid }
+        kind: { type: string, enum: [objective, domain] }
+        status: { $ref: '#/components/schemas/AssessmentStatus' }
+        elapsed_seconds: { type: integer }
+        question:
+          nullable: true
+          $ref: '#/components/schemas/Question'
+        progress: { $ref: '#/components/schemas/AdaptiveProgress' }
+
+    AnswerRequest:
+      type: object
+      required: [question_id, selected_options]
+      properties:
+        question_id: { type: integer }
+        selected_options:
+          type: array
+          items: { type: string }
+        question_elapsed_seconds: { type: integer, minimum: 0, nullable: true }
+
+    AnswerResult:
+      type: object
+      properties:
+        is_correct: { type: boolean }
+        correct_options:
+          type: array
+          items: { type: string }
+        justifications:
+          type: array
+          items: { type: string }
+        is_done: { type: boolean }
+        next_question:
+          nullable: true
+          $ref: '#/components/schemas/Question'
+        progress: { $ref: '#/components/schemas/AdaptiveProgress' }
+        mastery:
+          nullable: true
+          type: object
+          properties:
+            level: { type: integer }
+            label: { type: string, example: Proficient }
+        review_url: { type: string, nullable: true }
+
+    AssessmentReview:
+      type: object
+      properties:
+        assessment:
+          type: object
+          properties:
+            id: { type: string, format: uuid }
+            status: { $ref: '#/components/schemas/AssessmentStatus' }
+            score: { type: number }
+            total_questions: { type: integer }
+            correct_answers: { type: integer }
+            completed_at: { type: string, format: date-time, nullable: true }
+            mastery_label: { type: string, nullable: true }
+            difficulty_history:
+              type: array
+              items: { type: integer }
+            result_history:
+              type: array
+              items: { type: boolean }
+        questions:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: integer }
+              content: { type: string }
+              options: { type: array, items: { type: string } }
+              correct_options: { type: array, items: { type: string } }
+              justifications: { type: array, items: { type: string } }
+              selected_options: { type: array, items: { type: string } }
+              is_correct: { type: boolean, nullable: true }
+
+    ExamSetting:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        duration_minutes: { type: integer }
+        question_count: { type: integer }
+        passing_percentage: { type: number }
+        last_attempt:
+          nullable: true
+          type: object
+          properties:
+            id: { type: string, format: uuid }
+            score: { type: number }
+            passed: { type: boolean }
+
+    ExamState:
+      type: object
+      properties:
+        assessment_id: { type: string, format: uuid }
+        status: { $ref: '#/components/schemas/AssessmentStatus' }
+        mode: { type: string, enum: [linear_locked, linear], description: from ExamEngineFactory }
+        index: { type: integer }
+        total: { type: integer }
+        remaining_seconds: { type: integer }
+        deadline_at: { type: string, format: date-time }
+        question:
+          nullable: true
+          $ref: '#/components/schemas/Question'
+
+    ExamResults:
+      type: object
+      properties:
+        assessment_id: { type: string, format: uuid }
+        score: { type: number }
+        scaled_score: { type: integer, nullable: true, example: 762 }
+        passed: { type: boolean }
+        passing_percentage: { type: number }
+        by_domain:
+          type: array
+          items:
+            type: object
+            properties:
+              domain: { type: string }
+              percent: { type: number }
+
+    StudyTopic:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        slug: { type: string }
+        objective_number: { type: string, nullable: true }
+
+    StudyNote:
+      type: object
+      properties:
+        topic:
+          type: object
+          properties:
+            id: { type: integer }
+            name: { type: string }
+        blocks:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: integer }
+              type: { type: string, example: rich_text }
+              content: { type: string, description: Sanitized HTML/markdown }
+
+    Flashcard:
+      type: object
+      properties:
+        id: { type: integer }
+        front: { type: string }
+        back: { type: string }
+        difficulty: { type: integer, nullable: true }
+        deck: { type: string, nullable: true }
+
+    Video:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        url: { type: string, format: uri }
+        duration_seconds: { type: integer, nullable: true }
+        thumbnail_url: { type: string, format: uri, nullable: true }
