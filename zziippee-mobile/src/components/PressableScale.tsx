@@ -6,13 +6,17 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 interface Props extends Omit<PressableProps, 'style'> {
   style?: StyleProp<ViewStyle>;
   scaleTo?: number;
+  /** Set false to disable interaction without the automatic opacity fade — e.g. a
+   * quiz option that should stay fully readable (its own right/wrong color) once
+   * answers are locked in, rather than washing out like a plain disabled control. */
+  dimWhenDisabled?: boolean;
 }
 
 /**
  * Spring-back press feedback (scale down, no opacity fade) — the tactile response
  * every native iOS control gives, vs. the flat color/opacity swap web ports use.
  */
-export function PressableScale({ style, scaleTo = 0.96, disabled, onPressIn, onPressOut, ...rest }: Props) {
+export function PressableScale({ style, scaleTo = 0.96, disabled, dimWhenDisabled = true, onPressIn, onPressOut, ...rest }: Props) {
   const scale = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
@@ -27,7 +31,7 @@ export function PressableScale({ style, scaleTo = 0.96, disabled, onPressIn, onP
         scale.value = withSpring(1, { damping: 14, stiffness: 300 });
         onPressOut?.(e);
       }}
-      style={[animStyle, style, disabled && { opacity: 0.5 }]}
+      style={[animStyle, style, disabled && dimWhenDisabled && { opacity: 0.5 }]}
       {...rest}
     />
   );

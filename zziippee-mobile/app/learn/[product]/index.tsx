@@ -1,5 +1,6 @@
 import { View, ScrollView, StyleSheet, useColorScheme } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { getData } from '../../../src/api/client';
@@ -9,10 +10,10 @@ import { Icon } from '../../../src/components/Icon';
 import { PressableScale } from '../../../src/components/PressableScale';
 import { Section, Row } from '../../../src/components/List';
 import { Poster } from '../../../src/components/Poster';
-import { useTheme, spacing, radius, hairline, continuousCurve } from '../../../src/theme/tokens';
+import { useTheme, spacing, radius, hairline, continuousCurve, shadow } from '../../../src/theme/tokens';
 
 interface CourseHome {
-  course: { name: string; code: string; vendor: string };
+  course: { name: string; code: string; vendor: string; art?: string };
   tiles: { slug: string; name: string; enabled: boolean }[];
 }
 
@@ -20,29 +21,39 @@ interface CourseHome {
 export default function CourseScreen() {
   const t = useTheme();
   const scheme = useColorScheme();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { product } = useLocalSearchParams<{ product: string }>();
   const { data } = useQuery({ queryKey: ['course', product], queryFn: () => getData<CourseHome>(`/learn/${product}`), staleTime: 300_000 });
   const start = useStartObjective();
 
-  const c = data?.course ?? { name: 'Security+', code: 'S+', vendor: 'CompTIA · SY0-701' };
+  const c = data?.course ?? { name: 'Security+', code: 'S+', vendor: 'CompTIA · SY0-701', art: 'security' };
 
   const startPractice = async () => {
-    const s = await start.mutateAsync('ethics'); // objective slug (mock accepts any)
+    const s = await start.mutateAsync(product); // objective slug; mock filters questions by course slug
     router.push(`/assessment/${s.assessment_id}/quiz`);
   };
 
   return (
     <View style={[styles.root, { backgroundColor: t.sysBg }]}>
-      <Poster art="security" style={styles.hero}>
+      <Poster art={(c.art as any) ?? 'security'} style={styles.hero}>
         <Text style={styles.heroCode}>{c.code}</Text>
+        <PressableScale
+          style={[styles.backBtn, { top: insets.top + 8 }]}
+          onPress={() => router.back()}
+          hitSlop={12}
+        >
+          <View style={{ transform: [{ rotate: '180deg' }] }}>
+            <Icon name="chevron" size={24} color="#000" />
+          </View>
+        </PressableScale>
         <View style={{ padding: spacing.xl }}>
           <Text variant="caption" style={styles.kicker}>{c.vendor.toUpperCase()}</Text>
           <Text variant="title1" color="onColor">{c.name}</Text>
         </View>
       </Poster>
 
-      <ScrollView style={styles.sheet} contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.sheet} contentContainerStyle={{ paddingBottom: 150 }} showsVerticalScrollIndicator={false}>
         <Section style={{ marginTop: spacing.lg }}>
           <Row icon="brain" iconBg={t.blue} label="Practice" value="Adaptive" onPress={startPractice} />
           <Row icon="book" iconBg={t.indigo} label="Study notes" onPress={() => router.push(`/learn/${product}/study-notes`)} />
@@ -54,23 +65,25 @@ export default function CourseScreen() {
         </Section>
       </ScrollView>
 
-      {/* Floating footer bar with quick actions */}
-      <BlurView
-        intensity={40}
-        tint={scheme === 'dark' ? 'systemChromeMaterialDark' : 'systemChromeMaterialLight'}
-        style={[styles.footbar, { borderTopColor: t.separator }]}
-      >
-        <PressableScale style={[styles.btn, { backgroundColor: t.blue }, continuousCurve]} onPress={startPractice}>
-          <Text variant="headline" color="onColor">Start Practice</Text>
-        </PressableScale>
-        <View style={[styles.divider, { backgroundColor: t.separator }]} />
-        <PressableScale hitSlop={12} onPress={() => router.push(`/learn/${product}/study-notes`)}>
-          <Icon name="book" size={20} color={t.label} />
-        </PressableScale>
-        <PressableScale hitSlop={12} onPress={() => router.push(`/learn/${product}/flashcards`)}>
-          <Icon name="layers" size={20} color={t.label} />
-        </PressableScale>
-      </BlurView>
+      {/* Floating footer pill with quick actions */}
+      <View style={[styles.footWrap, { paddingBottom: insets.bottom > 0 ? insets.bottom : 16 }]} pointerEvents="box-none">
+        <BlurView
+          intensity={40}
+          tint={scheme === 'dark' ? 'systemChromeMaterialDark' : 'systemChromeMaterialLight'}
+          style={[styles.footbar, shadow.floating]}
+        >
+          <PressableScale style={[styles.btn, { backgroundColor: t.blue }, continuousCurve]} onPress={startPractice}>
+            <Text variant="headline" color="onColor">Start Practice</Text>
+          </PressableScale>
+          <View style={[styles.divider, { backgroundColor: t.separator }]} />
+          <PressableScale hitSlop={12} onPress={() => router.push(`/learn/${product}/study-notes`)}>
+            <Icon name="book" size={20} color={t.label} />
+          </PressableScale>
+          <PressableScale hitSlop={12} onPress={() => router.push(`/learn/${product}/flashcards`)}>
+            <Icon name="layers" size={20} color={t.label} />
+          </PressableScale>
+        </BlurView>
+      </View>
     </View>
   );
 }
@@ -79,9 +92,25 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   hero: { height: 230, paddingTop: 40 },
   heroCode: { position: 'absolute', top: 28, right: 20, fontSize: 96, fontWeight: '800', letterSpacing: -3, color: 'rgba(255,255,255,0.16)' },
+  backBtn: {
+    position: 'absolute',
+    left: spacing.lg,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
   kicker: { letterSpacing: 1.4, fontWeight: '700', color: 'rgba(255,255,255,0.85)' },
   sheet: { flex: 1, marginTop: -16, borderTopLeftRadius: radius.card, borderTopRightRadius: radius.card, backgroundColor: 'transparent' },
-  footbar: { position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.xl, paddingVertical: spacing.md, paddingTop: spacing.sm, borderTopWidth: hairline },
+  footWrap: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: spacing.xl, paddingTop: spacing.sm },
+  footbar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderRadius: radius.pill, overflow: 'hidden' },
   btn: { flex: 1, borderRadius: radius.control, paddingVertical: 14, alignItems: 'center' },
   divider: { width: hairline, height: 28, marginHorizontal: spacing.lg },
 });

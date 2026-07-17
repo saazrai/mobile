@@ -7,7 +7,7 @@ import { Text } from '../../src/components/Text';
 import { Poster } from '../../src/components/Poster';
 import { useTheme, spacing, radius } from '../../src/theme/tokens';
 
-interface Enrollment { slug: string; name: string; code: string; vendor: string; mastery: number; expires: string; art: 'security' | 'cc' }
+interface Enrollment { slug: string; name: string; code: string; vendor: string; mastery: number; expires: string; art: 'security' | 'cc' | 'cysa' }
 
 export default function CoursesScreen() {
   const t = useTheme();
@@ -39,6 +39,7 @@ export default function CoursesScreen() {
 const FALLBACK: Enrollment[] = [
   { slug: 'comptia-security-plus', name: 'Security+', code: 'S+', vendor: 'CompTIA', mastery: 64, expires: '14 Mar', art: 'security' },
   { slug: 'isc2-cc', name: 'ISC2 CC', code: 'CC', vendor: 'ISC2', mastery: 21, expires: '02 Sep', art: 'cc' },
+  { slug: 'comptia-cysa-plus', name: 'CySA+', code: 'CySA+', vendor: 'CompTIA', mastery: 0, expires: '20 Dec', art: 'cysa' },
 ];
 
 const styles = StyleSheet.create({

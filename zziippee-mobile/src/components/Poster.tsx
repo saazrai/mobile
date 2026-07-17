@@ -11,6 +11,7 @@ const ART: Record<string, [string, string, string]> = {
   security: ['#1f3fae', '#0b1f5e', '#071233'],
   cc: ['#0e8f7e', '#0a5a63', '#05242c'],
   exam: ['#5b3fd6', '#3a1f8f', '#1a0f45'],
+  cysa: ['#c2410c', '#7c2d12', '#2b0705'],
 };
 
 export function Poster({

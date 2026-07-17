@@ -19,7 +19,7 @@ export function Icon({ name, size = 24, color = '#000', filled = false }: Props)
 
   // Paths with ambiguous numeric sequences ("0 0 0") are extracted here
   // so the JSX parser doesn't confuse them with object literals.
-  const _brain = 'M9 4a3 3 0 0 0-3 3 3 3 0 0 0-1 5 3 0 0 0 2 5 2.5 2.5 0 0 0 5 .3V4.2A2.2 2.2 0 0 0 9 4Z';
+  const _brain = 'M12 3c-1.4 0 -2.6 0.9 -3.1 2.1c-1.3 0.3 -2.3 1.5 -2.2 2.9c0.1 0.5 0.2 0.9 0.4 1.3c-1 0.6 -1.6 1.7 -1.6 2.9c0 1.2 0.7 2.3 1.7 2.8c-0.1 0.4 -0.2 0.8 -0.1 1.3c0.1 1.4 1.3 2.5 2.7 2.5c0.5 0 1 -0.1 1.4 -0.4c0.4 0.7 1.1 1.1 1.9 1.1V3Z';
 
   return (
       <Svg width={size} height={size} viewBox="0 0 24 24">
@@ -31,7 +31,7 @@ export function Icon({ name, size = 24, color = '#000', filled = false }: Props)
         {name === 'book' && <Path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5zM4 20.5A2.5 2.5 0 0 1 6.5 18H20" {...common} fill="none" />}
         {name === 'layers' && <Path d="M12 3 3 8l9 5 9-5zM3 13l9 5 9-5" {...common} fill="none" />}
         {name === 'video' && <G><Rect x={3} y={6} width={13} height={12} rx={2.5} {...common} /><Path d="m16 10 5-3v10l-5-3" {...common} fill="none" /></G>}
-        {name === 'brain' && <Path d={_brain} {...common} fill="none" />}
+        {name === 'brain' && <G><Path d={_brain} {...common} fill="none" /><Path d={_brain} {...common} fill="none" transform="translate(24,0) scale(-1,1)" /></G>}
         {name === 'shield' && <G><Path d="M12 3 5 5.5V11c0 4.5 3 7.5 7 9.5 4-2 7-5 7-9.5V5.5z" {...common} fill="none" /><Path d="m9 11 2 2 4-4" {...common} fill="none" /></G>}
         {name === 'clock' && <G><Circle cx={12} cy={12} r={9} {...common} /><Path d="M12 7v5l3 2" {...common} fill="none" /></G>}
         {name === 'bell' && <G><Path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6Z" {...common} fill="none" /><Path d="M10 20a2 2 0 0 0 4 0" {...common} /></G>}

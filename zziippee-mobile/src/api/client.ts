@@ -32,17 +32,22 @@ export interface ApiError {
   message: string;
   code?: string | null;
   errors?: Record<string, string[]>;
+  // Present on exam 409 conflicts (docs/08-exam-spec.md §8.6) — the server's
+  // current optimistic-lock counter, so the client can resync and let the user retry.
+  state_version?: number | null;
 }
 
 export class ApiRequestError extends Error {
   status?: number;
   code?: string | null;
   fieldErrors?: Record<string, string[]>;
+  stateVersion?: number | null;
   constructor(e: ApiError, status?: number) {
     super(e.message || 'Something went wrong');
     this.status = status;
     this.code = e.code;
     this.fieldErrors = e.errors;
+    this.stateVersion = e.state_version;
   }
 }
 
