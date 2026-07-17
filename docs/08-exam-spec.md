@@ -1,13 +1,18 @@
 # 8 · Exam Simulation Spec
 
-**Status:** No Exam feature exists yet in `zziippee-mobile` — no screens, no mock
-routes, no `docs/` folder in the app repo itself. This doc supersedes the Exam
-fragments scattered across doc 2 §2.5, doc 3 §3.5, doc 4 §4.6, and doc 5 screens
-L/M/N, which sketch a *stateless REST* contract that **does not match the real
-backend**. Everything here is verified against the actual implementation in
-`/Users/saaz/Projects/zziippee` (file:line cited throughout) rather than inferred
-from the planning sketch. Where the old docs are simply wrong, that's called out
-under §8.9.
+**Status:** A client-side prototype now exists in `zziippee-mobile` — mock
+`/exams/*` routes (`mock/server.mjs`), API hooks (`src/api/hooks/exam.ts`), and
+screens (`app/learn/[product]/exams/index.tsx`, `app/exam/[id]/runner.tsx`,
+`results.tsx`, `review.tsx`) implementing the design below against the mock
+server only. **No real backend work has started** — the session-vs-stateless
+gap in §8.1 is still open, and the prototype's `/results` implements only the
+domain-breakdown portion of §8.4/§8.7's contract (see §8.10 for the exact
+delta). This doc supersedes the Exam fragments scattered across doc 2 §2.5,
+doc 3 §3.5, doc 4 §4.6, and doc 5 screens L/M/N, which sketch a *stateless
+REST* contract that **does not match the real backend**. Everything here is
+verified against the actual implementation in `/Users/saaz/Projects/zziippee`
+(file:line cited throughout) rather than inferred from the planning sketch.
+Where the old docs are simply wrong, that's called out under §8.9.
 
 ## 8.1 The one fact that changes everything
 
@@ -153,9 +158,9 @@ directly — **no PHP session dependency** — while still delegating to the rea
 | Method | Path | Notes |
 |---|---|---|
 | GET | `/learn/{product}/exams` | List `exam_settings` for the course: `id, exam_type.name, question_count, duration, duration_for_humans, passing_percentage, max_attempts, has_unlimited_attempts, attempt_count, can_take_exam, has_in_progress_attempt, in_progress_assessment_id, cooldown_ends_at, policy` — mirrors `ExamsController::index` props (zziippee line 79-96), **not** the unpopulated `randomizeQuestions/showResults/...` keys `Index.vue` declares but the controller never fills (§8.9). |
-| POST | `/exams/{examSetting}/start` | → `{assessment_id, question, current_question_number:1, total_questions, answered_count:0, deadline_at, duration_limit_seconds, state_version:0, policy}`. Backend: if an in-progress attempt already exists, return it instead of creating a new one (mirrors the web redirect-to-resume in `ExamsController::start`, line 141). Enforce `max_attempts`/`cooldown_minutes` → `409` or `422` with a clear reason if blocked. |
-| GET | `/exams/{assessment}` | Resume-aware current state: `question, current_question_number, total_questions, answered_count, remaining_seconds (computed from deadline_at, not session), state_version, policy`. Auto-finalize + redirect-equivalent (`{completed:true, redirect_to:"results"}`) if server-side expiry check trips (§8.6). |
-| POST | `/exams/{assessment}/submit-answer` | Body: `{question_id, response_id?, review_index?, selected_options[], duration?, state_version, idempotency_key}` — same validation as `ExamsController::submitAnswer` (zziippee line 356-364). Response shape branches exactly as the real controller does: normal advance `{completed:false, question, response:{id}, progress, current_question_number, answered_count, state_version}`; review-gate reached `{completed:false, review_ready:true, ...}`; finalized `{completed:true, redirect_to:"results", state_version}`; stale version → **409** `{message, state_version}`; duplicate idempotency key → **200** `{duplicate:true, state_version}` (no reprocessing). Throttle `90/min`. **Never include `correct_options`/`justifications` in this response** — see §8.6. |
+| POST | `/exams/{examSetting}/start` | → `{assessment_id, question, questions?, current_question_number:1, total_questions, answered_count:0, deadline_at, duration_limit_seconds, state_version:0, policy}`. `questions` is the full ordered set (sans `correct_options`) and is present **only** when `policy.pre_selected_question_set` is true (linear_navigable) — it's how the client palette-navigates without a separate "jump to index" endpoint; locked/sequential exams omit it and the client only ever sees one question at a time, matching `on_the_fly_by_blueprint` selection. Backend: if an in-progress attempt already exists, return it instead of creating a new one (mirrors the web redirect-to-resume in `ExamsController::start`, line 141). Enforce `max_attempts`/`cooldown_minutes` → `409` or `422` with a clear reason if blocked. |
+| GET | `/exams/{assessment}` | Resume-aware current state: `question, questions?, answers? (index→selected_options, navigable only, for rehydrating the palette after a resume), current_question_number, total_questions, answered_count, remaining_seconds (computed from deadline_at, not session), state_version, policy`. Auto-finalize + redirect-equivalent (`{completed:true, redirect_to:"results"}`) if server-side expiry check trips (§8.6). |
+| POST | `/exams/{assessment}/submit-answer` | Body: `{question_id, response_id?, review_index?, selected_options[], duration?, state_version, idempotency_key}` — same validation as `ExamsController::submitAnswer` (zziippee line 356-364). Response shape branches exactly as the real controller does: normal advance `{completed:false, question, response:{id}, progress, current_question_number, answered_count, state_version}`; review-gate reached `{completed:false, review_ready:true, ...}`; finalized `{completed:true, redirect_to:"results", state_version}`; stale version → **409** `{message, state_version}`; duplicate idempotency key → **200** `{duplicate:true, state_version}` (no reprocessing). Throttle `90/min`. **Never include `correct_options`/`justifications` in this response** — see §8.6. **Edge case:** once the review gate is reached, the server's forward pointer sits on the last question, so an edit to *that specific* question arrives with `review_index === current_index` — it is indistinguishable from a plain forward resubmit and must be handled by the same branch that re-enters the review-gate response (idempotently), not by the `review_index`-edit branch, which only fires when the two differ (i.e. editing an *earlier* question). Get this wrong and re-editing the last question during review either 404s or double-counts `answered_count`. |
 | POST | `/exams/{assessment}/pause` | `{state_version, idempotency_key}` → `{status:"paused", state_version}`. Throttle `10/min`. |
 | GET | `/exams/{assessment}/resume` | Rehydrate after pause: same shape as GET `/exams/{assessment}`. |
 | POST | `/exams/{assessment}/heartbeat` | `{elapsed}` → `{ok:true, remaining_seconds}`. **Deviation from web on purpose:** the real `heartbeat` (zziippee line 643) doesn't return remaining time — the client just keeps a local countdown. For mobile, since backgrounding/foregrounding is more aggressive than a browser tab, **have the new endpoint return authoritative `remaining_seconds`** so the app can re-sync its countdown on every heartbeat and on foreground, per doc 4 §4.6. Throttle `30/min`, called every 30s. |
@@ -325,3 +330,34 @@ under an active attempt (`submit-answer`, `pause`, `heartbeat`, `end`) is a
 | 05 §5.4 (screen M) | "Question palette optional" | Palette visibility is fully policy-driven (`allow_backtrack`), not a design option — hide it outright in locked/simulation mode |
 | 06 §6.1/§6.2 | "Exam sim API (timer/heartbeat) : 2w" | Needs re-estimation once the session-vs-stateless gap (§8.1) is scoped with backend |
 | backend-stubs `routes/api_v1.php:67-70` | Exam routes commented out, "mirror ExamsController" | Correct that they're unbuilt; the mirror instruction needs to point at §8.4 of this doc, not the web controller directly |
+
+## 8.10 Prototype status (mock-only — no real backend exists)
+
+A full client-side implementation of §8.4–§8.7 runs against a mock, not the
+real backend described in §8.1:
+
+- `mock/server.mjs` — in-memory session state machine for `/exams/*`, covering
+  start/resume/GET-state/submit-answer (forward + review-index edit)/pause/
+  heartbeat/end/results/review, with `state_version` optimistic locking and
+  idempotency-key deduplication matching §8.6.
+- `src/api/hooks/exam.ts` — the TanStack Query hook surface from §8.8.
+- `app/learn/[product]/exams/index.tsx`, `app/exam/[id]/runner.tsx`,
+  `results.tsx`, `review.tsx` — Screens L/M/N + Review from §8.7, including the
+  review-before-submit gate and locked vs. navigable policy branching.
+
+**Known gap — this does *not* mean the real backend can be built by mirroring
+the prototype's `/results` shape.** The mock's results response implements
+only `summary.domains.performance` (per-domain accuracy bars). It does **not**
+implement `summary.topics`, `summary.blooms`, `advanced_analytics.time_analysis`
+/`confidence_signals`, `historical_summary`, or `action_plan` — all of which
+§8.4 and §8.7 (Screen N) document as part of the real contract, sourced from
+`ExamsController::buildPerformanceSummaries()`/`buildActionPlan()`/
+`buildAdvancedAnalytics()` on the web side. These were deliberately scoped out
+of the prototype (no Bloom/topic/timing data exists in the mock's question
+fixtures to make them meaningful) — the real backend work in §8.4 should still
+implement the full contract, not the narrowed prototype subset.
+
+Everything else in §8.1–§8.9 (the session-vs-stateless architectural gap, the
+proposed endpoint contract, the security/integrity behaviors) remains a design
+spec for backend work that has not started — the prototype only proves out the
+mobile-side contract and UX against a stand-in.
