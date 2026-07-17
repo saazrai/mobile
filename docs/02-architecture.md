@@ -132,6 +132,11 @@ sequenceDiagram
 
 - **Email verification** reuses the existing code-based flow, re-exposed under
   `/api/v1/auth/email/*` returning JSON. `verified` middleware still gates practice.
+- **Google sign-in is not a thin wrapper.** `SocialAuthController` today only
+  implements server-side redirect/callback OAuth (Socialite) — there is no
+  existing code path that verifies a client-supplied `id_token` from the
+  native Google Sign-In SDK (docs/09-backend-integration-risk-scan.md §9.1).
+  This needs new backend code, not route wiring.
 - **Token storage:** `expo-secure-store` (iOS Keychain / Android Keystore). Never
   AsyncStorage for tokens.
 - **401 handling:** an axios response interceptor clears the token and routes to
