@@ -11,9 +11,13 @@ import { PressableScale } from '../../../src/components/PressableScale';
 import { Section, Row } from '../../../src/components/List';
 import { Poster } from '../../../src/components/Poster';
 import { useTheme, spacing, radius, hairline, continuousCurve, shadow } from '../../../src/theme/tokens';
+import { courseMetaFor } from '../../../src/theme/courseArt';
 
+/** Real API shape per docs/openapi/mobile-v1.yaml → CourseHome schema.
+ * `vendor` and art live in src/theme/courseArt.ts (keyed by product slug),
+ * not on this response — see the crash that prompted this correction. */
 interface CourseHome {
-  course: { name: string; code: string; vendor: string; art?: string };
+  course: { id: number; name: string; code: string };
   tiles: { slug: string; name: string; enabled: boolean }[];
 }
 
@@ -28,6 +32,7 @@ export default function CourseScreen() {
   const start = useStartObjective();
 
   const c = data?.course;
+  const meta = courseMetaFor(product);
 
   const startPractice = async () => {
     const s = await start.mutateAsync(product); // objective slug; mock filters questions by course slug
@@ -49,7 +54,7 @@ export default function CourseScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: t.sysBg }]}>
-      <Poster art={c.art as any} style={styles.hero}>
+      <Poster art={meta?.art ?? 'security'} style={styles.hero}>
         <Text style={styles.heroCode}>{c.code}</Text>
         <PressableScale
           style={[styles.backBtn, { top: insets.top + 8 }]}
@@ -61,7 +66,7 @@ export default function CourseScreen() {
           </View>
         </PressableScale>
         <View style={{ padding: spacing.xl }}>
-          <Text variant="caption" style={styles.kicker}>{c.vendor.toUpperCase()}</Text>
+          <Text variant="caption" style={styles.kicker}>{meta?.vendor ?? 'Course'}</Text>
           <Text variant="title1" color="onColor">{c.name}</Text>
         </View>
       </Poster>
