@@ -1,66 +1,58 @@
-# zziippee Mobile — Architecture & Design Package
+# zziippee-mobile (Expo skeleton)
 
-*Prepared as: Mobile App Architect + Product Manager · 2026-07-17*
+React Native + Expo (TypeScript) starter for the SecureStart app. Implements the
+architecture in [`../docs/04-mobile-app-design.md`](../docs/04-mobile-app-design.md)
+and consumes the API in [`../docs/openapi/mobile-v1.yaml`](../docs/openapi/mobile-v1.yaml).
 
-This folder contains the recommendation, architecture, API contract, mobile app
-design, UI/UX spec, and delivery roadmap for building **native iOS and Android
-apps** for the zziippee / SaazAcademy learning platform. Each document is
-self-contained so backend, mobile, and design workstreams can proceed in parallel.
+## What's wired already
 
-## The one-paragraph summary
+- **Expo Router** with an **auth gate** (`app/_layout.tsx`) that routes on token presence.
+- **API client** (`src/api/client.ts`) — axios + Bearer token injection + 401 → logout + envelope unwrap.
+- **Session store** (`src/stores/session.ts`) — token in **SecureStore** (Keychain/Keystore), never AsyncStorage.
+- **TanStack Query** hooks (`src/api/hooks/`) — auth, dashboard, adaptive practice, with online-first cache policies.
+- **Apple-grade design system** (matches `../design/uiux-mockup.html`):
+  - `src/theme/tokens.ts` — iOS **semantic tokens** (systemGroupedBackground, secondary/tertiaryLabel, separator, system colors, blur materials) + the **SF Pro type ramp**.
+  - `src/components/Text.tsx` — typography primitive keyed to the ramp.
+  - `src/components/List.tsx` — **grouped-inset** `Section`/`Row` with hairline separators, icon tiles, values + chevrons (the Account-Settings pattern).
+  - `src/components/Icon.tsx` — SF-Symbols-style SVG icons (shared vocabulary with the mockup).
+  - `src/components/Poster.tsx` — Apple-TV cinematic gradient posters.
+  - `src/components/FloatingTabBar.tsx` — iOS translucent (blur) tab bar.
+- **Screens**: Login, **Home** (cinematic), **Course** (hero + grouped list), **Quiz Runner**
+  (server-authoritative answer→reveal→next), **Account** (grouped settings), Courses, Progress,
+  **Flashcards** (swipe-to-grade deck) and **Study Notes** (vertical reel).
 
-The zziippee web app is a Laravel 13 + Vue 3 **Inertia.js monolith**. Inertia
-serves server-rendered HTML-over-the-wire with **session/cookie auth**, so its
-pages and most of its endpoints **cannot be consumed by a native app as-is**. The
-recommended solution is to add a **new versioned, token-authenticated JSON API
-(`/api/v1`, Laravel Sanctum)** to the existing backend that **reuses the domain
-Services already in place** (adaptive practice, learner proficiency, exam engines,
-enrollment), and to build a **single React Native + Expo (TypeScript)** codebase
-that ships to both App Store and Play Store. Purchases remain on the web to avoid
-app-store commission and policy friction. v1 delivers **login, course/enrollment
-list, adaptive practice quizzes, domain tests, exam simulations, review, and study
-content (notes, flashcards, videos)** with an online-first, lightly-cached data layer.
+## Getting started
 
-## Decisions (agreed with stakeholder)
-
-| Decision | Choice |
-|---|---|
-| v1 scope | Login + Practice (adaptive quiz, domain test, exam sim, review) + Study content (notes, flashcards, videos). **Purchases stay on web.** |
-| Client framework | **React Native + Expo (TypeScript)** — one codebase, reuses TS skillset |
-| Offline | **Online-first** with light caching; full offline is a later phase |
-| Backend | **Add new `/api/v1`** (Sanctum) reusing existing Laravel Services |
-
-## Document index
-
-| # | Document | For whom |
-|---|---|---|
-| 1 | [Solution Recommendation](docs/01-solution-recommendation.md) | Stakeholders / PM — why this approach, alternatives, risks |
-| 2 | [System Architecture](docs/02-architecture.md) | Architects / backend — diagrams: context, containers, auth, practice flow, data model |
-| 3 | [Mobile API Contract](docs/03-api-contract.md) | Backend team — every `/api/v1` endpoint mobile needs, mapped to existing Services |
-| 4 | [Mobile App Design](docs/04-mobile-app-design.md) | Mobile team — RN/Expo structure, navigation, state, caching, offline posture |
-| 5 | [UI/UX Specification](docs/05-uiux-spec.md) | Design + mobile — screen inventory, flows, design system, components |
-| 6 | [Delivery Roadmap](docs/06-roadmap.md) | PM / leads — phases, milestones, effort, team, risks |
-| 7 | [Gesture-First UX](docs/07-gesture-ux.md) | Design + mobile — Instagram-style reels/decks, gesture language, floating translucent nav, motion/haptics; **PBQs excluded (web-only)** |
-
-## Buildable artifacts (start here to code)
-
-| Path | What it is |
-|---|---|
-| [`docs/openapi/mobile-v1.yaml`](docs/openapi/mobile-v1.yaml) | **OpenAPI 3.1 contract** for `/api/v1` — the shared source of truth. Mock it (`prism mock`) and generate types from it. |
-| [`zziippee-mobile/`](zziippee-mobile/) | **Runnable Expo app** (RN + TS) — Apple-grade design system (iOS tokens, SF ramp, grouped lists, cinematic posters), auth gate, token vault, TanStack Query, and screens (Login, Home, Course, Quiz, Account, Flashcards, Study Notes). Ships a **zero-dependency mock API** so it runs with no backend — see [`RUNBOOK.md`](zziippee-mobile/RUNBOOK.md). |
-| [`backend-stubs/`](backend-stubs/) | **Laravel `/api/v1` stubs** — routes, `EnsureEnrolledApi` middleware, `AuthController` (Sanctum), and `PracticeController` (JSON mirror of the adaptive engine). Copy into the zziippee repo; see its README. |
-| [`design/uiux-mockup.html`](design/uiux-mockup.html) | Visual UI/UX mockup — gesture-first, floating translucent nav (also published as an Artifact — link in chat). |
-
-A visual **UI/UX mockup** (interactive HTML) is published separately as an Artifact —
-see the link shared in chat, or `design/uiux-mockup.html`.
-
-## How the three workstreams run in parallel
-
-```
-Backend API team ──► builds /api/v1 (doc 3) against a published OpenAPI contract
-Mobile app team  ──► builds RN/Expo app (doc 4) against a mock server of the same contract
-Design team      ──► delivers Figma from the UI/UX spec (doc 5) + mockup
+```bash
+npm install
+cp .env.example .env            # set API_BASE_URL + Google client ids
+npm run api:mock                # (optional) mock server from the OpenAPI spec
+npm run api:types               # generate src/api/generated/schema.ts from OpenAPI
+npm start                       # then press i (iOS) or a (Android)
 ```
 
-The **API contract (doc 3) is the shared source of truth** that decouples the three
-teams. Publish it as OpenAPI first; everything else keys off it.
+Point `API_BASE_URL` at the mock server (`npm run api:mock`) to build screens
+before the real `/api/v1` exists — this is the contract-first flow from the roadmap.
+
+## Structure
+
+```
+app/                      # Expo Router routes (screens)
+  _layout.tsx             # QueryClient + SafeArea + AuthGate
+  (auth)/login.tsx        # more: register, verify-email, forgot-password
+  (tabs)/                 # index (home), courses, progress, profile
+  assessment/[id]/quiz.tsx  # the core practice runner
+src/
+  api/client.ts           # axios instance + interceptors + envelope helpers
+  api/hooks/              # useLogin, dashboard, practice (start/answer/pause)
+  api/generated/          # `npm run api:types` output (gitignored until generated)
+  stores/session.ts       # token vault + auth state
+  theme/tokens.ts         # design tokens (light/dark)
+  components/             # QuestionCard, OptionRow, Timer, ... (to build)
+```
+
+## Still to build (per docs 4, 5 & 7)
+
+Register/verify/forgot screens · Google native sign-in call · Practice list &
+objective detail · Exam runner (server timer + heartbeat) · Videos reel · Review &
+results · offline banner (netinfo) · Query persistence · Sentry · Maestro E2E flows.
