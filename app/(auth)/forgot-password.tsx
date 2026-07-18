@@ -48,8 +48,10 @@ export default function ForgotPasswordScreen() {
               <PressableScale
                 style={[styles.btn, { backgroundColor: t.blue }, continuousCurve]}
                 onPress={() => {
-                  forgot.mutate({ email });
-                  setSent(true);
+                  forgot.mutate(
+                    { email },
+                    { onSuccess: () => setSent(true) },
+                  );
                 }}
                 disabled={forgot.isPending || !email}
                 accessibilityLabel="Send password reset link button"

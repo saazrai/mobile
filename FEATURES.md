@@ -13,7 +13,8 @@ It is NOT a technical inventory — it describes user-facing capabilities only.
 | Create account | ✅ | Name, email, password → verification code sent to email |
 | Email verification (4-digit code) | ✅ | Send → enter code flow; 10-min expiry, resend available |
 | Sign in with Google | ⚠️ Stub | Button shows "Coming soon" — SDK API mismatched this build version |
-| Forgot password | ✅ | Enter email → "check your inbox for signed link" (server sends link, not an in-app code) |
+| Forgot password | ✅ | Enter email → `POST /auth/forgot-password` (202); shows success state on the same screen |
+| Reset password via deep link | ✅ | Tapping `zziippee://reset?...` from email opens a screen that collects new password + confirmation, POSTs to `/auth/reset-password`; invalid/expired links show an error with "Back to login" |
 | Dark mode toggle | ✅ | Local switch on profile screen; server sync is a future improvement |
 | Export my data (GDPR) | ✅ | Calls `GET /account/export` — returns JSON dump from mock |
 | Anonymize account | ✅ | Replaces "Delete Account" copy per spec; clears session locally |

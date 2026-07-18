@@ -16,6 +16,12 @@ const queryClient = new QueryClient({
   },
 });
 
+/** Returns the parsed deep link if it matches zziippee://reset[?...], else null. */
+function parseResetLink(url: string): string | null {
+  const parsed = Linking.parse(url);
+  return parsed.scheme === 'zziippee' && parsed.path === '/reset' ? url : null;
+}
+
 /** Routes the user in/out of the (auth) group based on token presence. */
 function AuthGate() {
   const authed = useSession((s) => s.authed);
@@ -30,18 +36,16 @@ function AuthGate() {
   // Cold-start deep link: if the app was opened via zziippee://reset?... handle it.
   useEffect(() => {
     Linking.getInitialURL().then((url) => {
-      if (url && url.includes('/reset')) {
-        router.replace(url);
-      }
+      const reset = parseResetLink(url ?? '');
+      if (reset) router.replace(reset);
     });
   }, []);
 
   // Live deep link: while the app is running, handle incoming URLs.
   useEffect(() => {
     const sub = Linking.addEventListener('url', ({ url }) => {
-      if (url.includes('/reset')) {
-        router.replace(url);
-      }
+      const reset = parseResetLink(url);
+      if (reset) router.replace(reset);
     });
     return () => sub.remove();
   }, []);

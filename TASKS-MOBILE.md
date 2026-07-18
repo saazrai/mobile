@@ -54,6 +54,10 @@ around client-side.
 - **1.1** `[MOBILE]` Login/Register/Verify-email/Forgot-password screens (doc
   05 screens B–D) — build the verify-then-register flow order per doc 10
   §10.3 (verification must succeed *before* the register call, not after).
+  **Done.** Forgot-password: email input → `POST /auth/forgot-password` (202);
+  reset-password screen handles `zziippee://reset?...` deep link with token+email,
+  collects new password + confirmation, POSTs to `/auth/reset-password`. See
+  commit `2a20e10`.
 - **1.2** `[MOBILE]` Home/My Courses/Course Home screens (doc 05 screens
   E–G) — scope to doc 11 §11.1's Option B (enrollments/stats/recent-results
   only) unless the backend track confirms it built Option A's
