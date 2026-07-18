@@ -1,3 +1,4 @@
+// app/(tabs)/courses.tsx
 import { ScrollView, Pressable, View, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -6,8 +7,15 @@ import { getData } from '../../src/api/client';
 import { Text } from '../../src/components/Text';
 import { Poster } from '../../src/components/Poster';
 import { useTheme, spacing, radius } from '../../src/theme/tokens';
+import { courseMetaFor } from '../../src/theme/courseArt';
+import { formatShortDate } from '../../src/utils/formatDate';
 
-interface Enrollment { slug: string; name: string; code: string; vendor: string; mastery: number; expires: string; art: 'security' | 'cc' | 'cysa' }
+interface Enrollment {
+  id: number;
+  course: { name: string; code: string } | null;
+  product: { name: string; slug: string } | null;
+  enrolled_at: string | null;
+}
 
 export default function CoursesScreen() {
   const t = useTheme();
@@ -24,18 +32,25 @@ export default function CoursesScreen() {
             <Text variant="body" color="label2">Couldn't load your courses.</Text>
             <Pressable onPress={() => refetch()} accessibilityLabel="Retry loading courses"><Text variant="headline" color="blue">Retry</Text></Pressable>
           </View>
-        ) : list.map((c) => (
-          <Pressable key={c.slug} onPress={() => router.push(`/learn/${c.slug}`)}>
-            <Poster art={c.art} style={styles.card}>
-              <Text style={styles.code}>{c.code}</Text>
-              <View>
-                <Text variant="caption" style={styles.kicker}>{c.vendor.toUpperCase()} · {c.mastery}% READY</Text>
-                <Text variant="title2" color="onColor">{c.name}</Text>
-                <Text variant="footnote" style={{ color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>Expires {c.expires}</Text>
-              </View>
-            </Poster>
-          </Pressable>
-        ))}
+        ) : list.map((e) => {
+          const slug = e.product?.slug;
+          const meta = courseMetaFor(slug);
+          const name = e.course?.name ?? e.product?.name ?? 'Course';
+          const code = e.course?.code ?? '';
+          const enrolledLabel = formatShortDate(e.enrolled_at);
+          return (
+            <Pressable key={e.id} onPress={() => slug && router.push(`/learn/${slug}`)}>
+              <Poster art={meta.art} style={styles.card}>
+                <Text style={styles.code}>{code}</Text>
+                <View>
+                  {meta.vendor ? <Text variant="caption" style={styles.kicker}>{meta.vendor.toUpperCase()}</Text> : null}
+                  <Text variant="title2" color="onColor">{name}</Text>
+                  {enrolledLabel ? <Text variant="footnote" style={{ color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>Enrolled {enrolledLabel}</Text> : null}
+                </View>
+              </Poster>
+            </Pressable>
+          );
+        })}
         {!isLoading && !isError && list.length === 0 && <Text variant="body" color="label2">You don't have any enrolled courses yet.</Text>}
       </ScrollView>
     </SafeAreaView>
