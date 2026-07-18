@@ -59,7 +59,7 @@ export default function QuizRunner() {
     setSelected((p) => [...p, opt]);
   };
 
-  const answeredCount = answeredOverride ?? state?.progress.answered ?? 0;
+  const answeredCount = answeredOverride ?? state?.progress?.answered ?? 0;
 
   const onSubmit = async () => {
     if (!current) return;
@@ -73,7 +73,8 @@ export default function QuizRunner() {
     // Advance the header count only now — at Submit time we're still showing the
     // just-answered question's reveal state, so bumping it there made the number
     // jump early instead of in sync with the new question actually appearing.
-    setAnsweredOverride(result.progress.answered);
+    const p = result?.progress;
+    if (p) setAnsweredOverride(p.answered);
     if (result.is_done) return router.replace(`/assessment/${id}/review?product=${product}`);
     setQuestion(result.next_question); setSelected([]); setResult(null);
   };
@@ -101,7 +102,7 @@ export default function QuizRunner() {
         </PressableScale>
         <Text variant="headline">Practice</Text>
         <ProgressRing
-          progress={answeredCount / Math.max(1, state?.progress.estimatedTotal ?? 1)}
+          progress={answeredCount / Math.max(1, state?.progress?.estimatedTotal ?? 1)}
           size={44} strokeWidth={3} color={t.blue} track={t.fill}
         >
           <Text variant="caption" style={{ fontWeight: '700' }}>{answeredCount + 1}</Text>
