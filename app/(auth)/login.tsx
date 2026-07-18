@@ -3,11 +3,27 @@ import { View, TextInput, StyleSheet, ActivityIndicator, KeyboardAvoidingView, P
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
-import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { Text } from '../../src/components/Text';
 import { Icon } from '../../src/components/Icon';
 import { PressableScale } from '../../src/components/PressableScale';
 import { useLogin, useGoogleSignIn } from '../../src/api/hooks/auth';
+
+/**
+ * Google Sign-In is only available in dev clients / prebuilds where the native
+ * RNGoogleSignin bridge is linked. In Expo Go we hide the button rather than
+ * crash with "RNGoogleSignin could not be found".
+ */
+let GoogleSignin: any;
+let statusCodes: { SIGN_IN_CANCELLED: string };
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const mod = require('@react-native-google-signin/google-signin');
+  GoogleSignin = mod.GoogleSignin ?? mod.default?.GoogleSignin;
+  statusCodes = (mod as any).statusCodes ?? {};
+} catch {
+  // native module not linked — button will be hidden
+}
+const googleAvailable = !!GoogleSignin;
 import { useTheme, spacing, radius, hairline, continuousCurve, shadow } from '../../src/theme/tokens';
 
 export default function LoginScreen() {
@@ -54,27 +70,29 @@ export default function LoginScreen() {
             {login.isPending ? <ActivityIndicator color="#fff" /> : <Text variant="headline" color="onColor">Sign in</Text>}
           </PressableScale>
 
-          <PressableScale
-            style={[styles.btnGhost, { borderColor: t.separator }, continuousCurve]}
-            onPress={async () => {
-              try {
-                await GoogleSignin.hasPlayServices();
-                const res = await GoogleSignin.signIn();
-                if (res.type !== 'success') return; // cancelled / no saved credential
-                if (!res.data.idToken) { Alert.alert('Google Sign-In', 'No ID token received. Check webClientId config.'); return; }
-                googleSignIn.mutate(res.data.idToken);
-              } catch (e: any) {
-                if (e.code === statusCodes.SIGN_IN_CANCELLED) return; // user tapped back / dismissed
-                Alert.alert('Google Sign-In failed', e.message ?? 'Try again.');
-              }
-            }}
-            disabled={login.isPending || googleSignIn.isPending}
-          >
-            <>
-              <Icon name="shareForward" size={16} color={t.blue} />
-              <Text variant="headline" color="blue" style={{ marginLeft: spacing.sm }}>Continue with Google</Text>
-            </>
-          </PressableScale>
+          {googleAvailable && (
+            <PressableScale
+              style={[styles.btnGhost, { borderColor: t.separator }, continuousCurve]}
+              onPress={async () => {
+                try {
+                  await GoogleSignin.hasPlayServices();
+                  const res = await GoogleSignin.signIn();
+                  if (res.type !== 'success') return; // cancelled / no saved credential
+                  if (!res.data.idToken) { Alert.alert('Google Sign-In', 'No ID token received. Check webClientId config.'); return; }
+                  googleSignIn.mutate(res.data.idToken);
+                } catch (e: any) {
+                  if (e.code === statusCodes.SIGN_IN_CANCELLED) return; // user tapped back / dismissed
+                  Alert.alert('Google Sign-In failed', e.message ?? 'Try again.');
+                }
+              }}
+              disabled={login.isPending || googleSignIn.isPending}
+            >
+              <>
+                <Icon name="shareForward" size={16} color={t.blue} />
+                <Text variant="headline" color="blue" style={{ marginLeft: spacing.sm }}>Continue with Google</Text>
+              </>
+            </PressableScale>
+          )}
 
           <View style={styles.footRow}>
             <Text variant="subhead" color="label2">New here? </Text>

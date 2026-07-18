@@ -6,17 +6,34 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import Constants from 'expo-constants';
 import { useSession } from '../src/stores/session';
 import { useOffline } from '../src/hooks/useOffline';
 import { OfflineBanner } from '../src/components/OfflineBanner';
 import { queryClient } from '../src/api/queryClient';
 
-/** Configure the Google Sign-In SDK once, before any screen renders. */
-GoogleSignin.configure({
-  webClientId: Constants.expoConfig?.extra?.googleWebClientId ?? '', // omitted on dev without a real client ID — signIn() will reject gracefully
-});
+/**
+ * Configure Google Sign-In if the native module is available (dev client / prebuild).
+ * In Expo Go the RNGoogleSignin bridge isn't linked, so we swallow the error and let
+ * the login screen surface a "not available" state instead of crashing.
+ */
+let GoogleSignin: any;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const mod = require('@react-native-google-signin/google-signin');
+  GoogleSignin = mod.GoogleSignin ?? mod.default?.GoogleSignin;
+} catch {
+  // native module not linked — Google Sign-In will be disabled on this build
+}
+if (GoogleSignin) {
+  try {
+    GoogleSignin.configure({
+      webClientId: Constants.expoConfig?.extra?.googleWebClientId ?? '',
+    });
+  } catch {
+    // configure failed (e.g. missing webClientId); leave it disabled
+  }
+}
 
 /** Returns the parsed deep link if it matches zziippee://reset[?...], else null. */
 function parseResetLink(url: string): string | null {
