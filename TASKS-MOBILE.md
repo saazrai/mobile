@@ -66,6 +66,9 @@ around client-side.
 - **1.3** `[MOBILE]` Profile/Settings screen — server-synced dark mode
   (`ui_preferences.theme`, not just local `useColorScheme()`), GDPR export
   action, accurate "anonymize" (not "delete") account copy (doc 10 §10.3).
+  **Done.** Dark mode now loads from `/account/preferences` on mount and syncs
+  changes via POST; server value is source of truth with system-scheme fallback.
+  See commit `7ac53ef`.
 - **1.4** `[BACKEND, tracked elsewhere]` Sanctum scaffold, Auth/Account/
   Dashboard/Curriculum wrapper endpoints, Google `id_token` verification,
   enrollment-gating fix (order-paid check, not `Enrollment.status`) — docs
@@ -79,7 +82,9 @@ around client-side.
 ## Phase 2 — Practice (doc 12) — "the value core"
 
 - **2.1** `[MOBILE]` Practice List + Objective Detail screens (doc 05
-  screens H–I) — not yet built.
+  screens H–I). **Done.** Tapping a domain in the course home now opens an
+  objective list with mastery %, question counts, and "Start practice" per row
+  → navigates to `app/assessment/[id]/quiz`. See commit `7ac53ef`.
 - **2.2** `[MOBILE]` The existing Quiz Runner/Review
   (`app/assessment/[id]/quiz.tsx`, `review.tsx`) already implements the
   correct reveal-after-submit contract — no changes needed for objective

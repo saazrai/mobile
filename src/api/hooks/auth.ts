@@ -42,7 +42,7 @@ export function useRegister() {
   const setUser = useSession((s) => s.setUser);
   return useMutation({
     mutationFn: (body: { name: string; email: string; password: string }) =>
-      postData<AuthResponse>('/auth/register', { ...body, device_name: deviceName }),
+      postData<AuthResponse>('/auth/register', { ...body, device_name: deviceName, consent: true }),
     onSuccess: async (data) => {
       await setToken(data.token);
       setUser(data.user);

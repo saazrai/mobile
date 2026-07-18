@@ -62,7 +62,7 @@ export default function ResetPasswordScreen() {
           <Animated.View entering={FadeInDown.delay(120).duration(400)}>
             <Text variant="title1" style={styles.h1}>Set new password</Text>
             <Text variant="subhead" color="label2" style={{ marginTop: 8, textAlign: 'center' }}>
-              Enter a new password for {email}.
+              Enter a new password for {email}. Must be at least 12 characters.
             </Text>
           </Animated.View>
 
@@ -89,8 +89,8 @@ export default function ResetPasswordScreen() {
           <PressableScale
             style={[styles.btn, { backgroundColor: t.blue }, continuousCurve]}
             onPress={() => {
-              if (password.length < 8) {
-                Alert.alert('Password too short', 'Your password must be at least 8 characters.');
+              if (password.length < 12) {
+                Alert.alert('Password too short', 'Your password must be at least 12 characters.');
                 return;
               }
               if (password !== confirm) {
