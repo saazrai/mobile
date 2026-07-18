@@ -1,3 +1,4 @@
+// app/(tabs)/courses.tsx
 import { ScrollView, Pressable, View, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -9,16 +10,11 @@ import { useTheme, spacing, radius } from '../../src/theme/tokens';
 import { courseMetaFor } from '../../src/theme/courseArt';
 import { formatShortDate } from '../../src/utils/formatDate';
 
-/** Real API shape per docs/openapi/mobile-v1.yaml → Enrollment schema.
- * Note: `vendor` and art style are NOT on this response — they live in
- * src/theme/courseArt.ts, keyed by product slug. */
 interface Enrollment {
   id: number;
-  product: { id: number; name: string; slug: string } | null;
-  course_code: string;
-  status: 'active' | 'expired' | 'revoked';
-  expires_at: string | null;
-  mastery_percent: number;
+  course: { name: string; code: string } | null;
+  product: { name: string; slug: string } | null;
+  enrolled_at: string | null;
 }
 
 export default function CoursesScreen() {
@@ -39,22 +35,17 @@ export default function CoursesScreen() {
         ) : list.map((e) => {
           const slug = e.product?.slug;
           const meta = courseMetaFor(slug);
-          const name = e.product?.name ?? 'Course';
-          const code = e.course_code;
-          const mastery = e.mastery_percent ?? 0;
-          const art = meta?.art ?? 'security';
-          const vendor = meta?.vendor;
-          const expiresLabel = formatShortDate(e.expires_at);
+          const name = e.course?.name ?? e.product?.name ?? 'Course';
+          const code = e.course?.code ?? '';
+          const enrolledLabel = formatShortDate(e.enrolled_at);
           return (
             <Pressable key={e.id} onPress={() => slug && router.push(`/learn/${slug}`)}>
-              <Poster art={art} style={styles.card}>
+              <Poster art={meta.art} style={styles.card}>
                 <Text style={styles.code}>{code}</Text>
                 <View>
-                  {vendor ? <Text variant="caption" style={styles.kicker}>{vendor.toUpperCase()} · {mastery}%</Text> : <Text variant="caption" style={styles.kicker}>{mastery}%</Text>}
+                  {meta.vendor ? <Text variant="caption" style={styles.kicker}>{meta.vendor.toUpperCase()}</Text> : null}
                   <Text variant="title2" color="onColor">{name}</Text>
-                  <Text variant="footnote" style={{ color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>
-                    {e.status === 'expired' ? 'Expired' : expiresLabel ? `Expires ${expiresLabel}` : null}
-                  </Text>
+                  {enrolledLabel ? <Text variant="footnote" style={{ color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>Enrolled {enrolledLabel}</Text> : null}
                 </View>
               </Poster>
             </Pressable>

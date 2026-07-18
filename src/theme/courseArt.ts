@@ -1,26 +1,22 @@
-/** Client-side metadata for known products. The API does not return vendor or
- * art style on enrollment / course-home responses — those are properties of
- * the product type itself, stable across users and enrollments. Keeping them
- * here means screens can render consistently without depending on server data
- * that may omit these fields (which is what caused the `toUpperCase` crash). */
+export type CourseArt = 'security' | 'cc' | 'cysa';
 
-export type ArtStyle = 'security' | 'cc' | 'cysa';
-
-interface CourseMeta {
+export interface CourseMeta {
+  art: CourseArt;
   vendor: string;
-  art: ArtStyle;
 }
 
-const META: Record<string, CourseMeta> = {
-  'comptia-security-plus':   { vendor: 'CompTIA',  art: 'security' },
-  'isc2-cc':                 { vendor: 'ISC2',     art: 'cc' },
-  'comptia-cysa-plus':       { vendor: 'CompTIA',  art: 'cysa' },
+// The real backend has no concept of poster art or a vendor label — both are
+// presentation-only, so they're a client-side lookup keyed by product slug
+// rather than something the API returns.
+const COURSE_META: Record<string, CourseMeta> = {
+  'comptia-security-plus': { art: 'security', vendor: 'CompTIA' },
+  'isc2-cc': { art: 'cc', vendor: 'ISC2' },
+  'comptia-cysa-plus': { art: 'cysa', vendor: 'CompTIA' },
 };
 
-/** Look up vendor + art for a product slug. Returns `null` if the slug is
- * unknown — callers should degrade gracefully (hide vendor line, use default
- * art) rather than crash. */
-export function courseMetaFor(slug: string | null | undefined): CourseMeta | null {
-  if (!slug) return null;
-  return META[slug] ?? null;
+const DEFAULT_META: CourseMeta = { art: 'security', vendor: '' };
+
+export function courseMetaFor(slug: string | null | undefined): CourseMeta {
+  if (!slug) return DEFAULT_META;
+  return COURSE_META[slug] ?? DEFAULT_META;
 }
