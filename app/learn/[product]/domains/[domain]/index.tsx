@@ -28,7 +28,7 @@ export default function ObjectiveScreen() {
   const startPractice = async (objectiveSlug: string) => {
     try {
       const result = await startObjective.mutateAsync(objectiveSlug);
-      router.push(`/assessment/${result.assessment_id}/quiz?product=${product}`);
+      router.push(`/assessment/${result.assessment_id}/quiz?product=${product}&domain=${domainSlug}`);
     } catch {
       // Error is surfaced by TanStack Query; nothing to do here beyond logging.
     }

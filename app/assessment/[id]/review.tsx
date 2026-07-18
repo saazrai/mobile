@@ -19,10 +19,14 @@ export default function ReviewScreen() {
   const t = useTheme();
   const scheme = useColorScheme();
   const router = useRouter();
-  const { id, product } = useLocalSearchParams<{ id: string; product?: string }>();
+  const { id, product, domain } = useLocalSearchParams<{ id: string; product?: string; domain?: string }>();
   const { data, isLoading, isError } = useReview(id, product);
 
-  const done = () => router.replace('/(tabs)');
+  const done = () => {
+    if (product && domain) return router.replace(`/learn/${product}/domains/${domain}`);
+    if (product) return router.replace(`/learn/${product}/domains`);
+    return router.replace('/(tabs)');
+  };
 
   if (isLoading) {
     return <SafeAreaView style={[styles.center, { backgroundColor: t.sysBg }]}><ActivityIndicator color={t.blue} /></SafeAreaView>;

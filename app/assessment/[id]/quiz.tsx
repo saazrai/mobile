@@ -20,7 +20,7 @@ export default function QuizRunner() {
   const t = useTheme();
   const scheme = useColorScheme();
   const router = useRouter();
-  const { id, product } = useLocalSearchParams<{ id: string; product?: string }>();
+  const { id, product, domain } = useLocalSearchParams<{ id: string; product?: string; domain?: string }>();
   const { data: state, isLoading } = useAssessment(id, product);
   const answer = useAnswer(id!, product!);
 
@@ -70,7 +70,11 @@ export default function QuizRunner() {
 
   const onNext = () => {
     if (!result) return;
-    if (result.is_done) return router.replace(`/assessment/${id}/review?product=${product}`);
+    if (result.is_done) {
+      const reviewParams = new URLSearchParams({ product: product ?? '' });
+      if (domain) reviewParams.set('domain', domain);
+      return router.replace(`/assessment/${id}/review?${reviewParams.toString()}`);
+    }
     setQuestion(result.next_question); setSelected([]); setResult(null);
   };
 
