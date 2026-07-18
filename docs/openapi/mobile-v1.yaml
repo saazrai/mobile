@@ -227,7 +227,7 @@ paths:
   /learn/{product}:
     get:
       tags: [Enrollments]
-      summary: Course home — nav tiles (product types), course meta, exam settings
+      summary: Course home — product types (study modes), course meta, exam settings
       parameters: [ { $ref: '#/components/parameters/Product' } ]
       responses:
         '200':
@@ -772,21 +772,23 @@ components:
             id: { type: integer }
             name: { type: string }
             slug: { type: string }
+            description: { type: string, nullable: true }
+            short_description: { type: string, nullable: true }
+            types:
+              type: array
+              description: Admin-managed, per-product study modes (practice-quiz, study-notes, flashcards, exam, videos, ...) — active only, in sort order.
+              items:
+                type: object
+                properties:
+                  id: { type: integer }
+                  name: { type: string }
+                  slug: { type: string }
         course:
           type: object
           properties:
             id: { type: integer }
             name: { type: string }
             code: { type: string }
-        tiles:
-          type: array
-          description: Product-type nav tiles (practice, study-notes, flashcards, videos, exams)
-          items:
-            type: object
-            properties:
-              slug: { type: string }
-              name: { type: string }
-              enabled: { type: boolean }
 
     Domain:
       type: object

@@ -5,20 +5,38 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { getData } from '../../../src/api/client';
 import { Text } from '../../../src/components/Text';
-import { Icon } from '../../../src/components/Icon';
+import { Icon, type IconName } from '../../../src/components/Icon';
 import { PressableScale } from '../../../src/components/PressableScale';
 import { Section, Row } from '../../../src/components/List';
 import { Poster } from '../../../src/components/Poster';
-import { useTheme, spacing, radius, hairline, continuousCurve, shadow } from '../../../src/theme/tokens';
+import { useTheme, spacing, radius, hairline, continuousCurve, shadow, type Palette } from '../../../src/theme/tokens';
 import { courseMetaFor } from '../../../src/theme/courseArt';
 
-/** Real API shape per docs/openapi/mobile-v1.yaml → CourseHome schema.
+/** Real API shape per CurriculumController::courseHome — `product.types` is the
+ * admin-managed, per-product list of study modes (dynamic, not a fixed enum).
  * `vendor` and art live in src/theme/courseArt.ts (keyed by product slug),
  * not on this response — see the crash that prompted this correction. */
+interface ProductType {
+  id: number;
+  name: string;
+  slug: string;
+}
+
 interface CourseHome {
   course: { id: number; name: string; code: string };
-  tiles: { slug: string; name: string; enabled: boolean }[];
+  product: { id: number; name: string; slug: string; types: ProductType[] };
 }
+
+/** Maps known product-type slugs (admin-managed, shared with the web app's
+ * ProductTypeNav.vue) to the mobile screen and icon for that study mode.
+ * Slugs without a mobile screen yet (e.g. "videos") render inert. */
+const TYPE_UI: Record<string, { icon: IconName; bg: (t: Palette) => string; path?: (product: string) => string }> = {
+  'practice-quiz': { icon: 'brain', bg: (t) => t.blue, path: (p) => `/learn/${p}/domains` },
+  'study-notes': { icon: 'book', bg: (t) => t.indigo, path: (p) => `/learn/${p}/study-notes` },
+  'flashcards': { icon: 'layers', bg: (t) => t.orange, path: (p) => `/learn/${p}/flashcards` },
+  'exam': { icon: 'clock', bg: (t) => t.green, path: (p) => `/learn/${p}/exams` },
+  'videos': { icon: 'video', bg: (t) => t.red },
+};
 
 /** Cinematic course hero over a grouped-inset mode list (matches the mockup). */
 export default function CourseScreen() {
@@ -31,9 +49,27 @@ export default function CourseScreen() {
 
   const c = data?.course;
   const meta = courseMetaFor(product);
+  const types = data?.product?.types ?? [];
+  const examTypes = types.filter((ty) => ty.slug === 'exam');
+  const otherTypes = types.filter((ty) => ty.slug !== 'exam');
 
   const startPractice = () => {
     router.push(`/learn/${product}/domains`);
+  };
+
+  const renderTypeRow = (ty: ProductType) => {
+    const ui = TYPE_UI[ty.slug];
+    const path = ui?.path?.(product);
+    return (
+      <Row
+        key={ty.id}
+        icon={ui?.icon ?? 'bookmark'}
+        iconBg={ui ? ui.bg(t) : t.label3}
+        label={ty.name}
+        chevron={!!path}
+        onPress={path ? () => router.push(path) : undefined}
+      />
+    );
   };
 
   if (isLoading) {
@@ -69,15 +105,16 @@ export default function CourseScreen() {
       </Poster>
 
       <ScrollView style={styles.sheet} contentContainerStyle={{ paddingBottom: 150 }} showsVerticalScrollIndicator={false}>
-        <Section style={{ marginTop: spacing.lg }}>
-          <Row icon="brain" iconBg={t.blue} label="Practice" value="Adaptive" onPress={startPractice} />
-          <Row icon="book" iconBg={t.indigo} label="Study notes" onPress={() => router.push(`/learn/${product}/study-notes`)} />
-          <Row icon="layers" iconBg={t.orange} label="Flashcards" value="24" onPress={() => router.push(`/learn/${product}/flashcards`)} />
-          <Row icon="video" iconBg={t.red} label="Videos" onPress={() => router.push(`/learn/${product}/videos`)} />
-        </Section>
-        <Section footer="Performance-based questions are available on the web app (desktop recommended).">
-          <Row icon="clock" iconBg={t.green} label="Exam simulation" value="90 · 90m" onPress={() => router.push(`/learn/${product}/exams`)} />
-        </Section>
+        {otherTypes.length > 0 && (
+          <Section style={{ marginTop: spacing.lg }}>
+            {otherTypes.map(renderTypeRow)}
+          </Section>
+        )}
+        {examTypes.length > 0 && (
+          <Section footer="Performance-based questions are available on the web app (desktop recommended).">
+            {examTypes.map(renderTypeRow)}
+          </Section>
+        )}
       </ScrollView>
 
       {/* Floating footer pill with quick actions */}
