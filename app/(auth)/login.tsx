@@ -3,6 +3,7 @@ import { View, TextInput, StyleSheet, ActivityIndicator, KeyboardAvoidingView, P
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { Text } from '../../src/components/Text';
 import { Icon } from '../../src/components/Icon';
 import { PressableScale } from '../../src/components/PressableScale';
@@ -53,7 +54,22 @@ export default function LoginScreen() {
             {login.isPending ? <ActivityIndicator color="#fff" /> : <Text variant="headline" color="onColor">Sign in</Text>}
           </PressableScale>
 
-          <PressableScale style={[styles.btnGhost, { borderColor: t.separator }, continuousCurve]} onPress={() => Alert.alert('Coming soon', 'Google Sign-In will be available in a future update.')}>
+          <PressableScale
+            style={[styles.btnGhost, { borderColor: t.separator }, continuousCurve]}
+            onPress={async () => {
+              try {
+                await GoogleSignin.hasPlayServices();
+                const res = await GoogleSignin.signIn();
+                if (res.type !== 'success') return; // cancelled / no saved credential
+                if (!res.data.idToken) { Alert.alert('Google Sign-In', 'No ID token received. Check webClientId config.'); return; }
+                googleSignIn.mutate(res.data.idToken);
+              } catch (e: any) {
+                if (e.code === statusCodes.SIGN_IN_CANCELLED) return; // user tapped back / dismissed
+                Alert.alert('Google Sign-In failed', e.message ?? 'Try again.');
+              }
+            }}
+            disabled={login.isPending || googleSignIn.isPending}
+          >
             <>
               <Icon name="shareForward" size={16} color={t.blue} />
               <Text variant="headline" color="blue" style={{ marginLeft: spacing.sm }}>Continue with Google</Text>
