@@ -131,10 +131,13 @@ export function useAnswer(assessmentId: string, productSlug: string) {
       selected_options: string[];
       question_elapsed_seconds?: number;
     }) => postData<AnswerResult>(`/learn/${productSlug}/assessments/${assessmentId}/answer`, body),
-    onSuccess: () => {
-      // Progress changed — refetch the assessment so progress.answered stays fresh
-      // for the quiz runner's header counter, and invalidate dashboard for side effects.
-      qc.refetchQueries({ queryKey: ['assessment', assessmentId] });
+    onSuccess: (res) => {
+      // Progress changed — synchronously patch the assessment cache so the
+      // quiz runner's header counter reflects the new count on the very next render,
+      // without waiting for an async refetch to complete.
+      qc.setQueryData(['assessment', assessmentId], (old: any) =>
+        old ? { ...old, progress: res.progress } : old,
+      );
       qc.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
