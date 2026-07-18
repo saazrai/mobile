@@ -16,7 +16,7 @@ export default function ExamsListScreen() {
   const router = useRouter();
   const { product } = useLocalSearchParams<{ product: string }>();
   const { data, isLoading, isError, refetch, isRefetching } = useExamSettings(product);
-  const start = useExamStart();
+  const start = useExamStart(product);
 
   const onStart = async (setting: ExamSetting) => {
     if (setting.has_in_progress_attempt && setting.in_progress_assessment_id) {
@@ -68,7 +68,7 @@ export default function ExamsListScreen() {
               <Text variant="footnote" color="label2" style={styles.sectionHeader}>PAST ATTEMPTS</Text>
               <View style={[styles.attemptsCard, { backgroundColor: t.cell }, continuousCurve, shadow.card]}>
                 {data.user_exams.map((a, i) => (
-                  <AttemptRow key={a.id} attempt={a} t={t} isLast={i === data.user_exams.length - 1} onPress={() => router.push(`/exam/${a.id}/results`)} />
+                  <AttemptRow key={a.id} attempt={a} t={t} isLast={i === data.user_exams.length - 1} onPress={() => router.push(`/exam/${a.id}/results?product=${product}`)} />
                 ))}
               </View>
             </>

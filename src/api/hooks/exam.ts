@@ -230,18 +230,22 @@ export function useExamSettings(productSlug: string) {
   });
 }
 
-export function useExamStart() {
+export function useExamStart(productSlug: string) {
   return useMutation({
-    mutationFn: (examSettingId: number) => postData<ExamStartResult>(`/exams/${examSettingId}/start`),
+    mutationFn: (examSettingId: number) => postData<ExamStartResult>(`/learn/${productSlug}/exams/${examSettingId}/start`),
   });
 }
 
-/** Resume-aware current state. Also used to rehydrate after a pause. */
-export function useExam(assessmentId: string | undefined) {
+/**
+ * Resume-aware current state. Also used to rehydrate after a pause. `productSlug`
+ * is required because the real backend nests exam routes under `/learn/{product}/...`
+ * for its EnsureEnrolledApi enrollment-gating middleware.
+ */
+export function useExam(assessmentId: string | undefined, productSlug: string | undefined) {
   return useQuery({
     queryKey: ['exam', assessmentId],
-    queryFn: () => getData<ExamState>(`/exams/${assessmentId}`),
-    enabled: !!assessmentId,
+    queryFn: () => getData<ExamState>(`/learn/${productSlug}/exams/${assessmentId}`),
+    enabled: !!assessmentId && !!productSlug,
     staleTime: 0,
   });
 }
@@ -250,52 +254,52 @@ export function useExam(assessmentId: string | undefined) {
  * Submit (or edit, via review_index) an answer. Never reveals correctness —
  * exams don't have a reveal-after-submit step like Practice (docs/08 §8.7).
  */
-export function useExamAnswer(assessmentId: string) {
+export function useExamAnswer(assessmentId: string, productSlug: string) {
   return useMutation({
-    mutationFn: (body: SubmitAnswerBody) => postData<SubmitAnswerResult>(`/exams/${assessmentId}/submit-answer`, body),
+    mutationFn: (body: SubmitAnswerBody) => postData<SubmitAnswerResult>(`/learn/${productSlug}/exams/${assessmentId}/submit-answer`, body),
   });
 }
 
-export function useExamPause(assessmentId: string) {
+export function useExamPause(assessmentId: string, productSlug: string) {
   return useMutation({
     mutationFn: (body: { state_version: number; idempotency_key: string }) =>
-      postData<{ status: string; state_version: number }>(`/exams/${assessmentId}/pause`, body),
+      postData<{ status: string; state_version: number }>(`/learn/${productSlug}/exams/${assessmentId}/pause`, body),
   });
 }
 
 /** Keepalive, every ~30s and on foreground — returns authoritative remaining_seconds. */
-export function useExamHeartbeat(assessmentId: string) {
+export function useExamHeartbeat(assessmentId: string, productSlug: string) {
   return useMutation({
     mutationFn: (elapsed: number) =>
-      postData<{ ok: boolean; remaining_seconds: number; expired: boolean }>(`/exams/${assessmentId}/heartbeat`, { elapsed }),
+      postData<{ ok: boolean; remaining_seconds: number; expired: boolean }>(`/learn/${productSlug}/exams/${assessmentId}/heartbeat`, { elapsed }),
   });
 }
 
-export function useExamEnd(assessmentId: string) {
+export function useExamEnd(assessmentId: string, productSlug: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body: { state_version: number; idempotency_key: string }) =>
-      postData<{ completed: boolean; redirect_to?: string; state_version: number }>(`/exams/${assessmentId}/end`, body),
+      postData<{ completed: boolean; redirect_to?: string; state_version: number }>(`/learn/${productSlug}/exams/${assessmentId}/end`, body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }
 
-export function useExamResults(assessmentId: string | undefined) {
+export function useExamResults(assessmentId: string | undefined, productSlug: string | undefined) {
   return useQuery({
     queryKey: ['exam-results', assessmentId],
-    queryFn: () => getData<ExamResults>(`/exams/${assessmentId}/results`),
-    enabled: !!assessmentId,
+    queryFn: () => getData<ExamResults>(`/learn/${productSlug}/exams/${assessmentId}/results`),
+    enabled: !!assessmentId && !!productSlug,
     staleTime: Infinity,
   });
 }
 
-export function useExamReview(assessmentId: string | undefined) {
+export function useExamReview(assessmentId: string | undefined, productSlug: string | undefined) {
   return useQuery({
     queryKey: ['exam-review', assessmentId],
-    queryFn: () => getData<ExamReview>(`/exams/${assessmentId}/review`),
-    enabled: !!assessmentId,
+    queryFn: () => getData<ExamReview>(`/learn/${productSlug}/exams/${assessmentId}/review`),
+    enabled: !!assessmentId && !!productSlug,
     staleTime: Infinity,
   });
 }

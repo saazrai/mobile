@@ -28,11 +28,11 @@ export default function ExamRunner() {
   const scheme = useColorScheme();
   const router = useRouter();
   const { id, product } = useLocalSearchParams<{ id: string; product?: string }>();
-  const { data: initial, isLoading } = useExam(id);
-  const answerMutation = useExamAnswer(id!);
-  const pauseMutation = useExamPause(id!);
-  const heartbeat = useExamHeartbeat(id!);
-  const endMutation = useExamEnd(id!);
+  const { data: initial, isLoading } = useExam(id, product);
+  const answerMutation = useExamAnswer(id!, product!);
+  const pauseMutation = useExamPause(id!, product!);
+  const heartbeat = useExamHeartbeat(id!, product!);
+  const endMutation = useExamEnd(id!, product!);
 
   const initializedRef = useRef(false);
   const [initialized, setInitialized] = useState(false);
@@ -88,7 +88,7 @@ export default function ExamRunner() {
 
   // Already-expired/completed on load (e.g. reopened long after the deadline).
   useEffect(() => {
-    if (initial?.completed) router.replace(`/exam/${id}/results`);
+    if (initial?.completed) router.replace(`/exam/${id}/results?product=${product}`);
   }, [initial, id, router]);
 
   const isNavigable = policy?.pre_selected_question_set ?? false;
@@ -106,7 +106,7 @@ export default function ExamRunner() {
       const localRemaining = deadlineAtRef.current == null ? 0 : Math.max(0, Math.round((deadlineAtRef.current - Date.now()) / 1000));
       const res = await heartbeat.mutateAsync(localRemaining);
       setDeadlineAt(Date.now() + res.remaining_seconds * 1000);
-      if (res.expired) router.replace(`/exam/${id}/results`);
+      if (res.expired) router.replace(`/exam/${id}/results?product=${product}`);
     } catch {
       // heartbeat failures shouldn't interrupt the exam — matches web's Exam.vue behavior
     }
@@ -125,7 +125,7 @@ export default function ExamRunner() {
       // already expired server-side — /results will still reflect the correct outcome
     }
     Alert.alert('Time’s up', 'Your exam has been submitted automatically.', [
-      { text: 'OK', onPress: () => router.replace(`/exam/${id}/results`) },
+      { text: 'OK', onPress: () => router.replace(`/exam/${id}/results?product=${product}`) },
     ]);
   }
 
@@ -164,7 +164,7 @@ export default function ExamRunner() {
       setAnswersMap((m) => ({ ...m, [viewIndex]: selected }));
       if (res.answered_count != null) setAnsweredCount(res.answered_count);
 
-      if (res.completed) { router.replace(`/exam/${id}/results`); return; }
+      if (res.completed) { router.replace(`/exam/${id}/results?product=${product}`); return; }
       if (res.review_ready) { setReviewReady(true); setInReviewDetail(false); return; }
       if (res.updated) {
         if (!reviewReady) { setViewIndex(serverIndex); }
@@ -212,7 +212,7 @@ export default function ExamRunner() {
     try {
       const res = await endMutation.mutateAsync({ state_version: stateVersion, idempotency_key: mintIdempotencyKey('exam-end') });
       setStateVersion(res.state_version);
-      router.replace(`/exam/${id}/results`);
+      router.replace(`/exam/${id}/results?product=${product}`);
     } catch (e) {
       handleMutationError(e);
     }

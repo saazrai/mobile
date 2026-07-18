@@ -44,20 +44,30 @@ export function useDomains(productSlug: string) {
   });
 }
 
-/** Resume-aware fetch of the current question for an assessment. */
-export function useAssessment(assessmentId: string | undefined) {
+/**
+ * Resume-aware fetch of the current question for an assessment. `productSlug` is
+ * required because the real backend nests assessment routes under
+ * `/learn/{product}/...` for its EnsureEnrolledApi enrollment-gating middleware.
+ */
+export function useAssessment(assessmentId: string | undefined, productSlug: string | undefined) {
   return useQuery({
     queryKey: ['assessment', assessmentId],
-    queryFn: () => getData<AssessmentState>(`/assessments/${assessmentId}`),
-    enabled: !!assessmentId,
+    queryFn: () => getData<AssessmentState>(`/learn/${productSlug}/assessments/${assessmentId}`),
+    enabled: !!assessmentId && !!productSlug,
     staleTime: 0, // live state — never serve stale
   });
 }
 
-export function useStartObjective() {
+/**
+ * Start an adaptive practice assessment for a specific objective.
+ * The identifier must be an OBJECTIVE slug (e.g., "2.3"), NOT a product/course
+ * slug (e.g., "cisa" or "comptia-security-plus"). Obtain from:
+ *   GET /learn/{product}/domains → domain.objectives[].slug
+ */
+export function useStartObjective(productSlug: string) {
   return useMutation({
-    mutationFn: (objectiveSlug: string) =>
-      postData<AssessmentState>(`/practice/objectives/${objectiveSlug}/start`),
+    mutationFn: (objectiveIdentifier: string) =>
+      postData<AssessmentState>(`/learn/${productSlug}/practice/objectives/${objectiveIdentifier}/start`),
   });
 }
 
@@ -68,10 +78,10 @@ export interface DomainStartResult {
   progress: AdaptiveProgress;
 }
 
-export function useStartDomain() {
+export function useStartDomain(productSlug: string) {
   return useMutation({
     mutationFn: (domainSlug: string) =>
-      postData<DomainStartResult>(`/practice/domains/${domainSlug}/start`),
+      postData<DomainStartResult>(`/learn/${productSlug}/practice/domains/${domainSlug}/start`),
   });
 }
 
@@ -81,11 +91,11 @@ export interface DomainAnswerResult {
   progress: AdaptiveProgress;
 }
 
-export function useDomainAnswer(assessmentId: string) {
+export function useDomainAnswer(assessmentId: string, productSlug: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body: { question_id: number; selected_options: string[] }) =>
-      postData<DomainAnswerResult>(`/assessments/${assessmentId}/answer`, body),
+      postData<DomainAnswerResult>(`/learn/${productSlug}/assessments/${assessmentId}/answer`, body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['dashboard'] });
     },
@@ -99,10 +109,10 @@ export interface DomainSubmitResult {
   total_questions: number;
 }
 
-export function useSubmitDomain(assessmentId: string) {
+export function useSubmitDomain(assessmentId: string, productSlug: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: () => postData<DomainSubmitResult>(`/assessments/${assessmentId}/submit`),
+    mutationFn: () => postData<DomainSubmitResult>(`/learn/${productSlug}/assessments/${assessmentId}/submit`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['dashboard'] });
     },
@@ -113,14 +123,14 @@ export function useSubmitDomain(assessmentId: string) {
  * Submit an answer. Correctness/adaptivity/scoring are decided server-side; the
  * app renders only what comes back. Never cached — always hits the network.
  */
-export function useAnswer(assessmentId: string) {
+export function useAnswer(assessmentId: string, productSlug: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body: {
       question_id: number;
       selected_options: string[];
       question_elapsed_seconds?: number;
-    }) => postData<AnswerResult>(`/assessments/${assessmentId}/answer`, body),
+    }) => postData<AnswerResult>(`/learn/${productSlug}/assessments/${assessmentId}/answer`, body),
     onSuccess: () => {
       // Progress/proficiency changed — let dashboard refetch on next focus.
       qc.invalidateQueries({ queryKey: ['dashboard'] });
@@ -128,10 +138,10 @@ export function useAnswer(assessmentId: string) {
   });
 }
 
-export function usePauseAssessment(assessmentId: string) {
+export function usePauseAssessment(assessmentId: string, productSlug: string) {
   return useMutation({
     mutationFn: (elapsedSeconds: number) =>
-      postData(`/assessments/${assessmentId}/pause`, { elapsed_seconds: elapsedSeconds }),
+      postData(`/learn/${productSlug}/assessments/${assessmentId}/pause`, { elapsed_seconds: elapsedSeconds }),
   });
 }
 
@@ -160,11 +170,11 @@ export interface AssessmentReview {
 }
 
 /** Post-quiz review — score, mastery, and per-question detail (docs/03 §review). */
-export function useReview(assessmentId: string | undefined) {
+export function useReview(assessmentId: string | undefined, productSlug: string | undefined) {
   return useQuery({
     queryKey: ['assessment-review', assessmentId],
-    queryFn: () => getData<AssessmentReview>(`/assessments/${assessmentId}/review`),
-    enabled: !!assessmentId,
+    queryFn: () => getData<AssessmentReview>(`/learn/${productSlug}/assessments/${assessmentId}/review`),
+    enabled: !!assessmentId && !!productSlug,
     staleTime: Infinity, // a completed assessment's review never changes
   });
 }

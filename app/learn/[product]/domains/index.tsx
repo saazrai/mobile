@@ -41,7 +41,10 @@ function DomainList({ productSlug, onSelect, t }: { productSlug: string; onSelec
   if (isLoading) return <View style={styles.center}><ActivityIndicator color={t.blue} /></View>;
   if (isError || !data) return <Text variant="body" color="label2">No domains available.</Text>;
 
-  const domains = Array.isArray(data) ? data : [data];
+  const rawDomains = !Array.isArray(data) && data && Array.isArray((data as any).domains)
+    ? (data as any).domains
+    : data;
+  const domains = Array.isArray(rawDomains) ? rawDomains : (rawDomains ? [rawDomains] : []);
 
   return (
     <Animated.View entering={FadeInDown.duration(500).springify().damping(18)} style={styles.list}>
@@ -61,7 +64,7 @@ function DomainList({ productSlug, onSelect, t }: { productSlug: string; onSelec
 }
 
 function ObjectiveList({ domain, onBack, t, router, productSlug }: { domain: any; onBack: () => void; t: any; router: any; productSlug: string }) {
-  const startObjective = useStartObjective();
+  const startObjective = useStartObjective(productSlug);
   const objectives = domain.objectives ?? [];
 
   if (objectives.length === 0) {
@@ -75,7 +78,7 @@ function ObjectiveList({ domain, onBack, t, router, productSlug }: { domain: any
   const startPractice = async (objectiveSlug: string, objectiveName: string) => {
     try {
       const result = await startObjective.mutateAsync(objectiveSlug);
-      router.push(`/assessment/${result.assessment_id}/quiz`);
+      router.push(`/assessment/${result.assessment_id}/quiz?product=${productSlug}`);
     } catch {
       // Error is surfaced by TanStack Query; nothing to do here beyond logging.
     }

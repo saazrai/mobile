@@ -15,8 +15,8 @@ import { useTheme, spacing, radius, hairline, continuousCurve, shadow, type Pale
 export default function ExamResultsScreen() {
   const t = useTheme();
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const { data, isLoading, isError } = useExamResults(id);
+  const { id, product } = useLocalSearchParams<{ id: string; product?: string }>();
+  const { data, isLoading, isError } = useExamResults(id, product);
 
   const done = () => router.replace('/(tabs)');
 
@@ -166,7 +166,7 @@ export default function ExamResultsScreen() {
         {data.can_review && (
           <PressableScale
             style={[styles.reviewCta, { backgroundColor: t.cell }, continuousCurve, shadow.card]}
-            onPress={() => router.push(`/exam/${id}/review`)}
+            onPress={() => router.push(`/exam/${id}/review?product=${product}`)}
           >
             <Icon name="book" size={18} color={t.blue} />
             <Text variant="headline" color="blue" style={{ flex: 1 }}>Review Questions & Answers</Text>

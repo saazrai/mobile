@@ -18,10 +18,10 @@ import { useTheme, spacing, radius, hairline, continuousCurve, shadow, type Pale
 export default function ExamReviewScreen() {
   const t = useTheme();
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const { data, isLoading, isError } = useExamReview(id);
+  const { id, product } = useLocalSearchParams<{ id: string; product?: string }>();
+  const { data, isLoading, isError } = useExamReview(id, product);
 
-  const done = () => router.replace(`/exam/${id}/results`);
+  const done = () => router.replace(`/exam/${id}/results?product=${product}`);
 
   if (isLoading) {
     return <SafeAreaView style={[styles.center, { backgroundColor: t.sysBg }]}><ActivityIndicator color={t.blue} /></SafeAreaView>;

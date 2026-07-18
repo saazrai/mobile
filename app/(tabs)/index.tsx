@@ -7,19 +7,37 @@ import { Text } from '../../src/components/Text';
 import { Icon } from '../../src/components/Icon';
 import { Poster } from '../../src/components/Poster';
 import { useTheme, spacing, radius } from '../../src/theme/tokens';
+import { courseMetaFor } from '../../src/theme/courseArt';
 
-interface Dashboard {
-  continue: { assessment_id: string; label: string; course: string; progress_percent: number } | null;
-  courses: { slug: string; name: string; code: string; mastery: number; art: 'security' | 'cc' }[];
+interface DashboardData {
+  streak_days: number;
+  continue: { assessment_id: string; product_slug?: string; label?: string; progress_percent: number } | null;
+  weakest_objective: unknown;
+  mastery_rollup: number;
+}
+
+interface Enrollment {
+  id: number;
+  product: { id: number; name: string; slug: string } | null;
+  course_code: string;
+  status: 'active' | 'expired' | 'revoked';
+  expires_at: string | null;
+  mastery_percent: number;
 }
 
 export default function HomeScreen() {
   const t = useTheme();
   const router = useRouter();
-  const { data, isLoading, isError, refetch } = useQuery({ queryKey: ['dashboard'], queryFn: () => getData<Dashboard>('/dashboard'), staleTime: 120_000 });
+  const { data, isLoading, isError, refetch } = useQuery({ queryKey: ['dashboard'], queryFn: () => getData<DashboardData>('/dashboard'), staleTime: 120_000 });
+
+  // Fetch enrolled courses separately — /dashboard doesn't include them.
+  const { data: enrollmentList } = useQuery({
+    queryKey: ['enrollments'],
+    queryFn: () => getData<Enrollment[]>('/enrollments'),
+    staleTime: 120_000,
+  });
 
   const cont = data?.continue;
-  const courses = data?.courses ?? [];
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: t.sysBg }]} edges={['top']}>
@@ -36,13 +54,13 @@ export default function HomeScreen() {
         {/* Cinematic Continue card */}
         <Pressable
           style={styles.continue}
-          onPress={() => cont && router.push(`/assessment/${cont.assessment_id}/quiz`)}
+          onPress={() => cont && router.push(`/assessment/${cont.assessment_id}/quiz?product=${cont.product_slug}`)}
           disabled={!cont}
         >
           <Poster art="security" style={styles.continuePoster}>
             <View style={styles.playFab}><Icon name="play" size={22} color="#fff" filled /></View>
             <View style={styles.continueMeta}>
-              <Text variant="caption" style={styles.kicker}>{cont ? `CONTINUE · ${cont.course.toUpperCase()}` : 'ALL CAUGHT UP'}</Text>
+              <Text variant="caption" style={styles.kicker}>{cont?.product_slug ? `CONTINUE · ${cont.product_slug.toUpperCase()}` : 'ALL CAUGHT UP'}</Text>
               <Text variant="title3" color="onColor" style={{ marginTop: 2 }}>{cont?.label ?? 'Choose a course to keep studying.'}</Text>
             </View>
             <View style={styles.progressLine}><View style={[styles.progressFill, { width: `${cont?.progress_percent ?? 0}%` }]} /></View>
@@ -51,19 +69,23 @@ export default function HomeScreen() {
 
         <Text variant="footnote" color="label2" style={styles.shelfHead}>YOUR COURSES</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.shelf}>
-          {courses.map((c) => (
-            <Pressable key={c.slug} style={styles.pcard} onPress={() => router.push(`/learn/${c.slug}`)}>
-              <Poster art={c.art} style={styles.poster}>
-                <Text style={styles.posterCode}>{c.code}</Text>
-                <View style={{ padding: spacing.md }}>
-                  <Text variant="caption" style={styles.kicker}>{c.mastery}% READY</Text>
-                  <Text variant="headline" color="onColor">{c.name}</Text>
-                </View>
-              </Poster>
-            </Pressable>
-          ))}
+          {enrollmentList?.map((e) => {
+            const slug = e.product?.slug;
+            const meta = courseMetaFor(slug);
+            return (
+              <Pressable key={e.id} style={styles.pcard} onPress={() => slug && router.push(`/learn/${slug}`)}>
+                <Poster art={meta?.art ?? 'security'} style={styles.poster}>
+                  <Text style={styles.posterCode}>{e.course_code}</Text>
+                  <View style={{ padding: spacing.md }}>
+                    <Text variant="caption" style={styles.kicker}>{e.mastery_percent ?? 0}% READY</Text>
+                    <Text variant="headline" color="onColor">{e.product?.name ?? 'Course'}</Text>
+                  </View>
+                </Poster>
+              </Pressable>
+            );
+          }) ?? []}
         </ScrollView>
-        {courses.length === 0 && <Text variant="body" color="label2" style={styles.empty}>No enrolled courses yet.</Text>}
+        {(!enrollmentList || enrollmentList.length === 0) && <Text variant="body" color="label2" style={styles.empty}>No enrolled courses yet.</Text>}
         </>}
       </ScrollView>
     </SafeAreaView>

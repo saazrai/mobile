@@ -20,9 +20,9 @@ export default function QuizRunner() {
   const t = useTheme();
   const scheme = useColorScheme();
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const { data: state, isLoading } = useAssessment(id);
-  const answer = useAnswer(id!);
+  const { id, product } = useLocalSearchParams<{ id: string; product?: string }>();
+  const { data: state, isLoading } = useAssessment(id, product);
+  const answer = useAnswer(id!, product!);
 
   const [selected, setSelected] = useState<string[]>([]);
   const [result, setResult] = useState<AnswerResult | null>(null);
@@ -74,7 +74,7 @@ export default function QuizRunner() {
     // just-answered question's reveal state, so bumping it there made the number
     // jump early instead of in sync with the new question actually appearing.
     setAnsweredOverride(result.progress.answered);
-    if (result.is_done) return router.replace(`/assessment/${id}/review`);
+    if (result.is_done) return router.replace(`/assessment/${id}/review?product=${product}`);
     setQuestion(result.next_question); setSelected([]); setResult(null);
   };
 

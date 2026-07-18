@@ -19,8 +19,8 @@ export default function ReviewScreen() {
   const t = useTheme();
   const scheme = useColorScheme();
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const { data, isLoading, isError } = useReview(id);
+  const { id, product } = useLocalSearchParams<{ id: string; product?: string }>();
+  const { data, isLoading, isError } = useReview(id, product);
 
   const done = () => router.replace('/(tabs)');
 

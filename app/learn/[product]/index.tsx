@@ -4,7 +4,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { getData } from '../../../src/api/client';
-import { useStartObjective } from '../../../src/api/hooks/practice';
 import { Text } from '../../../src/components/Text';
 import { Icon } from '../../../src/components/Icon';
 import { PressableScale } from '../../../src/components/PressableScale';
@@ -29,14 +28,12 @@ export default function CourseScreen() {
   const router = useRouter();
   const { product } = useLocalSearchParams<{ product: string }>();
   const { data, isLoading, isError, refetch } = useQuery({ queryKey: ['course', product], queryFn: () => getData<CourseHome>(`/learn/${product}`), staleTime: 300_000 });
-  const start = useStartObjective();
 
   const c = data?.course;
   const meta = courseMetaFor(product);
 
-  const startPractice = async () => {
-    const s = await start.mutateAsync(product); // objective slug; mock filters questions by course slug
-    router.push(`/assessment/${s.assessment_id}/quiz`);
+  const startPractice = () => {
+    router.push(`/learn/${product}/domains`);
   };
 
   if (isLoading) {

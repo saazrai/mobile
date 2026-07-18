@@ -14,10 +14,10 @@ import { useTheme, spacing, radius, hairline, continuousCurve, shadow } from '..
 export default function DomainQuizScreen() {
   const t = useTheme();
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const startDomain = useStartDomain();
-  const domainAnswer = useDomainAnswer(id);
-  const submitDomain = useSubmitDomain(id);
+  const { id, product } = useLocalSearchParams<{ id: string; product?: string }>();
+  const startDomain = useStartDomain(product!);
+  const domainAnswer = useDomainAnswer(id, product!);
+  const submitDomain = useSubmitDomain(id, product!);
 
   const [questions, setQuestions] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);

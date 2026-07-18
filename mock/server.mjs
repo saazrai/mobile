@@ -773,7 +773,17 @@ const server = createServer((req, res) => {
   req.on('data', (c) => (body += c));
   req.on('end', () => {
     const json = body ? safeParse(body) : {};
-    const seg = path.split('/').filter(Boolean);
+    const rawSeg = path.split('/').filter(Boolean);
+    // The real backend nests practice/assessment/exam sub-routes under
+    // /learn/{product}/... for its enrollment-gating middleware, but the mock's
+    // session state is keyed by assessment/exam id alone — strip the prefix so
+    // the existing flat matching below (seg[0] === 'practice'/'assessments'/'exams')
+    // still works. Leaves the exams *list* route (`/learn/:product/exams`, no
+    // further segments) alone since that one genuinely needs the product slug.
+    const sub = rawSeg[0] === 'learn' ? rawSeg[2] : undefined;
+    const seg = (sub === 'practice' || sub === 'assessments' || (sub === 'exams' && rawSeg.length > 3))
+      ? rawSeg.slice(2)
+      : rawSeg;
     console.log(req.method, path);
 
     // auth
