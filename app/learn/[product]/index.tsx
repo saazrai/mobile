@@ -1,4 +1,4 @@
-import { View, ScrollView, StyleSheet, useColorScheme } from 'react-native';
+import { View, ScrollView, StyleSheet, useColorScheme, ActivityIndicator } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -24,19 +24,32 @@ export default function CourseScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { product } = useLocalSearchParams<{ product: string }>();
-  const { data } = useQuery({ queryKey: ['course', product], queryFn: () => getData<CourseHome>(`/learn/${product}`), staleTime: 300_000 });
+  const { data, isLoading, isError, refetch } = useQuery({ queryKey: ['course', product], queryFn: () => getData<CourseHome>(`/learn/${product}`), staleTime: 300_000 });
   const start = useStartObjective();
 
-  const c = data?.course ?? { name: 'Security+', code: 'S+', vendor: 'CompTIA · SY0-701', art: 'security' };
+  const c = data?.course;
 
   const startPractice = async () => {
     const s = await start.mutateAsync(product); // objective slug; mock filters questions by course slug
     router.push(`/assessment/${s.assessment_id}/quiz`);
   };
 
+  if (isLoading) {
+    return <View style={[styles.loading, { backgroundColor: t.sysBg }]}><ActivityIndicator color={t.blue} /></View>;
+  }
+
+  if (isError || !c) {
+    return (
+      <View style={[styles.loading, { backgroundColor: t.sysBg }]}>
+        <Text variant="body" color="label2">Couldn't load this course.</Text>
+        <PressableScale onPress={() => refetch()}><Text variant="headline" color="blue">Retry</Text></PressableScale>
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.root, { backgroundColor: t.sysBg }]}>
-      <Poster art={(c.art as any) ?? 'security'} style={styles.hero}>
+      <Poster art={c.art as any} style={styles.hero}>
         <Text style={styles.heroCode}>{c.code}</Text>
         <PressableScale
           style={[styles.backBtn, { top: insets.top + 8 }]}
@@ -90,6 +103,7 @@ export default function CourseScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, padding: spacing.xl },
   hero: { height: 230, paddingTop: 40 },
   heroCode: { position: 'absolute', top: 28, right: 20, fontSize: 96, fontWeight: '800', letterSpacing: -3, color: 'rgba(255,255,255,0.16)' },
   backBtn: {

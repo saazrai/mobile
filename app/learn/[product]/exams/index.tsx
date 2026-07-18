@@ -42,7 +42,7 @@ export default function ExamsListScreen() {
       ) : isError || !data ? (
         <View style={styles.center}>
           <Text variant="body" color="label2" style={{ textAlign: 'center', paddingHorizontal: spacing.xl }}>
-            Couldn't load exams. Is the mock server running? (`npm run mock`)
+            Couldn't load exams. Check your connection and try again.
           </Text>
           <PressableScale
             style={[styles.cta, { backgroundColor: t.blue, marginTop: spacing.xl, paddingHorizontal: spacing.xl }, continuousCurve]}

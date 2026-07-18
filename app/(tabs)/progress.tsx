@@ -16,9 +16,9 @@ export default function ProgressScreen() {
   const t = useTheme();
   const scheme = useColorScheme();
 
-  // Resolve product: prefer first enrollment (the user's primary course), falling back to Security+.
+  // Resolve product from the user's server-provided enrollments only.
   const enrollments = useQuery({ queryKey: ['enrollments'], queryFn: () => getData<Enrollment[]>('/enrollments'), staleTime: 60_000 });
-  const slug = enrollments?.data?.[0]?.slug ?? 'comptia-security-plus';
+  const slug = enrollments.data?.[0]?.slug;
   const { data, isLoading, isError, refetch } = useLearnerProficiency(slug);
 
   return (
@@ -26,14 +26,22 @@ export default function ProgressScreen() {
       <ScrollView contentContainerStyle={{ padding: spacing.xl, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
         <Text variant="largeTitle" style={{ marginBottom: spacing.lg }}>Progress</Text>
 
-        {isLoading ? (
+        {enrollments.isLoading || isLoading ? (
           <View style={[styles.center, { backgroundColor: t.cell }, continuousCurve]}><ActivityIndicator color={t.blue} /></View>
-        ) : isError || !data ? (
+        ) : enrollments.isError || isError ? (
           <View style={[styles.center, { backgroundColor: t.cell }, continuousCurve]}>
             <Text variant="body" color="label2">Couldn't load your progress.</Text>
             <PressableScale style={[styles.retryBtn, { backgroundColor: t.blue, marginTop: spacing.lg }]} onPress={() => { enrollments.refetch(); refetch(); }} accessibilityLabel="Retry loading progress">
               <Text variant="headline" color="onColor">Retry</Text>
             </PressableScale>
+          </View>
+        ) : !slug ? (
+          <View style={[styles.center, { backgroundColor: t.cell }, continuousCurve]}>
+            <Text variant="body" color="label2">You don't have an enrolled course yet.</Text>
+          </View>
+        ) : !data ? (
+          <View style={[styles.center, { backgroundColor: t.cell }, continuousCurve]}>
+            <Text variant="body" color="label2">No progress data is available yet.</Text>
           </View>
         ) : (
           <>

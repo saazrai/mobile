@@ -45,7 +45,7 @@ export default function HomeScreen() {
               <Text variant="caption" style={styles.kicker}>{cont ? `CONTINUE · ${cont.course.toUpperCase()}` : 'ALL CAUGHT UP'}</Text>
               <Text variant="title3" color="onColor" style={{ marginTop: 2 }}>{cont?.label ?? 'Choose a course to keep studying.'}</Text>
             </View>
-            <View style={styles.progressLine}><View style={[styles.progressFill, { width: `${cont?.progress_percent ?? 44}%` }]} /></View>
+            <View style={styles.progressLine}><View style={[styles.progressFill, { width: `${cont?.progress_percent ?? 0}%` }]} /></View>
           </Poster>
         </Pressable>
 
