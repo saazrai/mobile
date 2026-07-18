@@ -1,4 +1,4 @@
-import { View, ScrollView, Pressable, StyleSheet } from 'react-native';
+import { View, ScrollView, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
@@ -16,7 +16,7 @@ interface Dashboard {
 export default function HomeScreen() {
   const t = useTheme();
   const router = useRouter();
-  const { data } = useQuery({ queryKey: ['dashboard'], queryFn: () => getData<Dashboard>('/dashboard'), staleTime: 120_000 });
+  const { data, isLoading, isError, refetch } = useQuery({ queryKey: ['dashboard'], queryFn: () => getData<Dashboard>('/dashboard'), staleTime: 120_000 });
 
   const cont = data?.continue;
   const courses = data?.courses ?? [];
@@ -27,16 +27,23 @@ export default function HomeScreen() {
         <Text variant="largeTitle" style={styles.title}>Study</Text>
         <Text variant="subhead" color="label2" style={styles.sub}>Tuesday, 17 July</Text>
 
+        {isLoading ? <View style={styles.status}><ActivityIndicator color={t.blue} /></View> : isError ? (
+          <View style={[styles.status, { backgroundColor: t.cell }]}>
+            <Text variant="body" color="label2">Couldn't load your study data.</Text>
+            <Pressable onPress={() => refetch()} accessibilityLabel="Retry loading study data"><Text variant="headline" color="blue">Retry</Text></Pressable>
+          </View>
+        ) : <>
         {/* Cinematic Continue card */}
         <Pressable
           style={styles.continue}
           onPress={() => cont && router.push(`/assessment/${cont.assessment_id}/quiz`)}
+          disabled={!cont}
         >
           <Poster art="security" style={styles.continuePoster}>
             <View style={styles.playFab}><Icon name="play" size={22} color="#fff" filled /></View>
             <View style={styles.continueMeta}>
-              <Text variant="caption" style={styles.kicker}>CONTINUE · {(cont?.course ?? 'SECURITY+').toUpperCase()}</Text>
-              <Text variant="title3" color="onColor" style={{ marginTop: 2 }}>{cont?.label ?? '2.3 Cryptographic solutions'}</Text>
+              <Text variant="caption" style={styles.kicker}>{cont ? `CONTINUE · ${cont.course.toUpperCase()}` : 'ALL CAUGHT UP'}</Text>
+              <Text variant="title3" color="onColor" style={{ marginTop: 2 }}>{cont?.label ?? 'Choose a course to keep studying.'}</Text>
             </View>
             <View style={styles.progressLine}><View style={[styles.progressFill, { width: `${cont?.progress_percent ?? 44}%` }]} /></View>
           </Poster>
@@ -44,7 +51,7 @@ export default function HomeScreen() {
 
         <Text variant="footnote" color="label2" style={styles.shelfHead}>YOUR COURSES</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.shelf}>
-          {(courses.length ? courses : FALLBACK).map((c) => (
+          {courses.map((c) => (
             <Pressable key={c.slug} style={styles.pcard} onPress={() => router.push(`/learn/${c.slug}`)}>
               <Poster art={c.art} style={styles.poster}>
                 <Text style={styles.posterCode}>{c.code}</Text>
@@ -56,15 +63,12 @@ export default function HomeScreen() {
             </Pressable>
           ))}
         </ScrollView>
+        {courses.length === 0 && <Text variant="body" color="label2" style={styles.empty}>No enrolled courses yet.</Text>}
+        </>}
       </ScrollView>
     </SafeAreaView>
   );
 }
-
-const FALLBACK = [
-  { slug: 'comptia-security-plus', name: 'Security+', code: 'S+', mastery: 64, art: 'security' as const },
-  { slug: 'isc2-cc', name: 'ISC2 CC', code: 'CC', mastery: 21, art: 'cc' as const },
-];
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
@@ -82,4 +86,6 @@ const styles = StyleSheet.create({
   pcard: { width: 150 },
   poster: { borderRadius: 14, aspectRatio: 2 / 3 },
   posterCode: { position: 'absolute', top: 8, right: 14, fontSize: 44, fontWeight: '800', letterSpacing: -1, color: 'rgba(255,255,255,0.16)' },
+  status: { margin: spacing.xl, padding: spacing.xl, borderRadius: radius.card, alignItems: 'center', gap: spacing.md },
+  empty: { marginHorizontal: spacing.xl, marginTop: spacing.md },
 });

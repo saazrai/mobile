@@ -19,7 +19,7 @@ export default function ProgressScreen() {
   // Resolve product: prefer first enrollment (the user's primary course), falling back to Security+.
   const enrollments = useQuery({ queryKey: ['enrollments'], queryFn: () => getData<Enrollment[]>('/enrollments'), staleTime: 60_000 });
   const slug = enrollments?.data?.[0]?.slug ?? 'comptia-security-plus';
-  const { data, isLoading, isError } = useLearnerProficiency(slug);
+  const { data, isLoading, isError, refetch } = useLearnerProficiency(slug);
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: t.sysBg }]} edges={['top']}>
@@ -31,7 +31,7 @@ export default function ProgressScreen() {
         ) : isError || !data ? (
           <View style={[styles.center, { backgroundColor: t.cell }, continuousCurve]}>
             <Text variant="body" color="label2">Couldn't load your progress.</Text>
-            <PressableScale style={[styles.retryBtn, { backgroundColor: t.blue, marginTop: spacing.lg }]} onPress={() => {}}>
+            <PressableScale style={[styles.retryBtn, { backgroundColor: t.blue, marginTop: spacing.lg }]} onPress={() => { enrollments.refetch(); refetch(); }} accessibilityLabel="Retry loading progress">
               <Text variant="headline" color="onColor">Retry</Text>
             </PressableScale>
           </View>

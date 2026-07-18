@@ -13,6 +13,15 @@ const COURSES = [
   { slug: 'comptia-cysa-plus', name: 'CySA+', code: 'CySA+', vendor: 'CompTIA', examCode: 'CS0-003', mastery: 0, expires: '20 Dec', art: 'cysa' },
 ];
 
+// Account preferences — persisted across requests during the mock process lifetime.
+const ACCOUNT_PREFS = { theme: 'light', font_size: 'medium', animations_enabled: true };
+
+// Objectives lookup — keyed by slug, for GET /learn/:product/objectives/:slug.
+// Mirrors the nested objectives from the domain list; extra fields are computed per-ask.
+const OBJECTIVES_BY_SLUG = {
+  ethics: { id: 14, number: '1.4', name: 'Professional ethics', slug: 'ethics', total_questions: 5, best_score: null, adaptive_bounds: [2, 5], topics: ['Ethical decision-making', 'Professional responsibility'], latest_assessment: null },
+};
+
 // `justifications` is index-aligned to `options` (docs/03 review contract) — one rationale
 // per choice, explaining why it's right or wrong, not just a note on the correct answer.
 // `courseSlug` scopes a question to one COURSES entry; startAssessment() filters on it.
@@ -784,6 +793,15 @@ const server = createServer((req, res) => {
     if (path === '/auth/me') return ok(res, { id: 1, name: 'Aarav Rai', email: 'saaz.rai@gmail.com', email_verified: true, roles: ['learner'] });
     if (path === '/auth/logout') return ok(res, { message: 'Signed out.' });
 
+    // account preferences — GET returns stored prefs; POST merges partial updates
+    if (path === '/account/preferences') {
+      if (req.method === 'GET') return ok(res, ACCOUNT_PREFS);
+      const merged = { ...ACCOUNT_PREFS, ...(json || {}) };
+      Object.keys(merged).forEach((k) => { if (!(k in ACCOUNT_PREFS)) delete merged[k]; }); // only known keys
+      for (const k of Object.keys(json || {})) { if (!(k in ACCOUNT_PREFS)) continue; ACCOUNT_PREFS[k] = json[k]; }
+      return ok(res, ACCOUNT_PREFS);
+    }
+
     // home / courses
     if (path === '/dashboard') return ok(res, { continue: { assessment_id: firstOrNewSession(), label: '1.4 Professional ethics', course: 'ISC2 CC', progress_percent: 44 }, courses: COURSES });
     if (path === '/enrollments') return ok(res, COURSES);
@@ -794,6 +812,10 @@ const server = createServer((req, res) => {
       return ok(res, { course: { name: c.name, code: c.code, vendor: `${c.vendor} · ${c.examCode}`, art: c.art }, tiles: [{ slug: 'practice', name: 'Practice', enabled: true }, { slug: 'study-notes', name: 'Study notes', enabled: true }, { slug: 'flashcards', name: 'Flashcards', enabled: true }, { slug: 'videos', name: 'Videos', enabled: true }] });
     }
     if (seg[0] === 'learn' && seg[2] === 'domains') return ok(res, [{ id: 1, number: '1', name: 'Security and Risk Management', slug: 'security-risk-management', weight_percentage: 30, mastery_percent: 44, objectives: [{ id: 14, number: '1.4', name: 'Professional ethics', slug: 'ethics', questions_count: 5, mastery_percent: 44, latest_assessment: null }] }]);
+    if (seg[0] === 'learn' && seg[2] === 'objectives') {
+      const obj = OBJECTIVES_BY_SLUG[seg[3]];
+      return ok(res, obj ?? { message: `Objective ${seg[3]} not found.` }, 404);
+    }
     if (seg[0] === 'learn' && seg[2] === 'flashcards' && seg.length === 3) {
       if (req.method === 'POST' && seg[3] === 'swipe') return ok(res, null, 202); // fire-and-forget grade
       return ok(res, FLASHCARDS);

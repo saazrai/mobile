@@ -119,12 +119,10 @@ export interface AnonymizeAccountBody {
 }
 
 export function useAnonymizeAccount() {
-  const clearSession = useSession((s) => s.setUser);
   return useMutation({
     mutationFn: (body: AnonymizeAccountBody) =>
       postData<void>('/account', body),
     onSuccess: async () => {
-      clearSession(null);
       await clearToken();
     },
   });

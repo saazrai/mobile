@@ -2,19 +2,14 @@ import { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import * as Linking from 'expo-linking';
 import { Slot, useRouter, useSegments } from 'expo-router';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import { useSession } from '../src/stores/session';
 import { useOffline } from '../src/hooks/useOffline';
 import { OfflineBanner } from '../src/components/OfflineBanner';
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { retry: 2, refetchOnWindowFocus: true, staleTime: 60_000 },
-  },
-});
+import { queryClient } from '../src/api/queryClient';
 
 /** Returns the parsed deep link if it matches zziippee://reset[?...], else null. */
 function parseResetLink(url: string): string | null {

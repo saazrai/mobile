@@ -52,16 +52,15 @@ export default function ExamRunner() {
   const [inReviewDetail, setInReviewDetail] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
-  const [remaining, setRemaining] = useState(0);
   const [deadlineAt, setDeadlineAt] = useState<number | null>(null);
 
   // Refs mirror the latest values for use inside setInterval/AppState closures
   // (which would otherwise capture stale state from the render they were created in).
   const stateVersionRef = useRef(stateVersion);
-  const remainingRef = useRef(remaining);
+  const deadlineAtRef = useRef<number | null>(deadlineAt);
   const endingRef = useRef(false);
   useEffect(() => { stateVersionRef.current = stateVersion; }, [stateVersion]);
-  useEffect(() => { remainingRef.current = remaining; }, [remaining]);
+  useEffect(() => { deadlineAtRef.current = deadlineAt; }, [deadlineAt]);
 
   // Seed local state once from the resume-aware GET (covers both a fresh start
   // — the List screen already called /start — and a resumed/paused attempt).
@@ -84,7 +83,6 @@ export default function ExamRunner() {
       setAnswersMap(Object.fromEntries(Object.entries(initial.answers).map(([k, v]) => [Number(k), v])));
     }
     setDeadlineAt(Date.now() + initial.remaining_seconds * 1000);
-    setRemaining(initial.remaining_seconds);
     setInitialized(true);
   }, [initial]);
 
@@ -103,18 +101,10 @@ export default function ExamRunner() {
     setSelected(answersMap[viewIndex] ?? []);
   }, [viewIndex]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ---- timer: local tick + periodic server resync ----
-  useEffect(() => {
-    if (deadlineAt == null) return;
-    const tick = () => setRemaining(Math.max(0, Math.round((deadlineAt - Date.now()) / 1000)));
-    tick();
-    const iv = setInterval(tick, 1000);
-    return () => clearInterval(iv);
-  }, [deadlineAt]);
-
   async function resyncTimer() {
     try {
-      const res = await heartbeat.mutateAsync(Math.max(0, remainingRef.current));
+      const localRemaining = deadlineAtRef.current == null ? 0 : Math.max(0, Math.round((deadlineAtRef.current - Date.now()) / 1000));
+      const res = await heartbeat.mutateAsync(localRemaining);
       setDeadlineAt(Date.now() + res.remaining_seconds * 1000);
       if (res.expired) router.replace(`/exam/${id}/results`);
     } catch {
@@ -127,13 +117,6 @@ export default function ExamRunner() {
     const sub = AppState.addEventListener('change', (s) => { if (s === 'active') resyncTimer(); });
     return () => { clearInterval(iv); sub.remove(); };
   }, [initialized]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ---- time-up: best-effort submit pending selection, then force-end ----
-  useEffect(() => {
-    if (!initialized || remaining > 0 || endingRef.current) return;
-    endingRef.current = true;
-    handleTimeUp();
-  }, [remaining, initialized]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleTimeUp() {
     try {
@@ -256,7 +239,6 @@ export default function ExamRunner() {
   }
 
   const showReviewList = reviewReady && !inReviewDetail;
-  const timerColor = remaining < 60 ? t.red : remaining < 300 ? t.orange : t.label;
   const pending = answerMutation.isPending || endMutation.isPending || pauseMutation.isPending;
 
   return (
@@ -269,7 +251,11 @@ export default function ExamRunner() {
             <Icon name="clock" size={18} color={t.label} />
           </PressableScale>
         )}
-        <Text variant="headline" style={{ color: timerColor, fontVariant: ['tabular-nums'] }}>{formatClock(remaining)}</Text>
+        <ExamCountdown deadlineAt={deadlineAt} t={t} onExpire={() => {
+          if (endingRef.current) return;
+          endingRef.current = true;
+          handleTimeUp();
+        }} />
         <View style={styles.navRight}>
           {policy?.allow_mark_for_review && !showReviewList && !reviewEnded && (
             <PressableScale onPress={toggleFlag} hitSlop={10}>
@@ -409,6 +395,26 @@ function formatClock(totalSeconds: number): string {
   return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
 }
 
+/** Keeps the once-per-second render isolated from the exam runner's question tree. */
+function ExamCountdown({ deadlineAt, t, onExpire }: { deadlineAt: number | null; t: Palette; onExpire: () => void }) {
+  const [remaining, setRemaining] = useState(0);
+
+  useEffect(() => {
+    if (deadlineAt == null) return;
+    const tick = () => {
+      const next = Math.max(0, Math.round((deadlineAt - Date.now()) / 1000));
+      setRemaining(next);
+      if (next === 0) onExpire();
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [deadlineAt, onExpire]);
+
+  const color = remaining < 60 ? t.red : remaining < 300 ? t.orange : t.label;
+  return <Text variant="headline" style={{ color, fontVariant: ['tabular-nums'] }}>{formatClock(remaining)}</Text>;
+}
+
 function ReviewGateList({ t, scheme, questions, totalQuestions, answersMap, flagged, locked, onOpen, onEndReview, onEndExam, pending }: {
   t: Palette; scheme: string | null | undefined; questions: ExamQuestion[] | null; totalQuestions: number; answersMap: Record<number, string[]>;
   flagged: Set<number>; locked: boolean; onOpen: (i: number) => void; onEndReview: () => void; onEndExam: () => void; pending: boolean;
@@ -470,7 +476,7 @@ function PaletteSheet({ t, questions, totalQuestions, currentIndex, serverIndex,
       </Pressable>
       <View style={[styles.sheet, { backgroundColor: t.cell }, continuousCurve, shadow.floating]}>
         <Text variant="headline" style={{ marginBottom: spacing.md }}>Questions</Text>
-        <View style={styles.chipGrid}>
+        <ScrollView style={styles.chipScroll} contentContainerStyle={styles.chipGrid} showsVerticalScrollIndicator>
           {Array.from({ length: totalQuestions }).map((_, i) => {
             const answered = !!answersMap[i]?.length;
             const isCurrent = i === currentIndex;
@@ -486,7 +492,7 @@ function PaletteSheet({ t, questions, totalQuestions, currentIndex, serverIndex,
               </PressableScale>
             );
           })}
-        </View>
+        </ScrollView>
       </View>
     </View>
   );
@@ -515,6 +521,7 @@ const styles = StyleSheet.create({
   reviewDot: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   scrim: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' },
   sheet: { position: 'absolute', left: spacing.lg, right: spacing.lg, bottom: spacing.xl, padding: spacing.xl, borderRadius: radius.card },
+  chipScroll: { maxHeight: 360 },
   chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   chip: { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   chipFlag: { position: 'absolute', top: -3, right: -3, width: 9, height: 9, borderRadius: 5 },

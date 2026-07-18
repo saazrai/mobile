@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
+import { getData } from '../api/client';
+import { queryClient } from '../api/queryClient';
 
 const TOKEN_KEY = 'zz_token';
 
@@ -18,6 +20,7 @@ export async function setToken(token: string): Promise<void> {
 
 export async function clearToken(): Promise<void> {
   await SecureStore.deleteItemAsync(TOKEN_KEY);
+  queryClient.clear();
   useSession.getState().setAuthed(false);
   useSession.getState().setUser(null);
 }
@@ -49,21 +52,16 @@ export const useSession = create<SessionState>((set) => ({
       set({ authed: false });
       return;
     }
-    // Fetch /auth/me to populate user data on cold start
+    // Use the shared API client so this request has the same base URL, timeout,
+    // authorization header, and error handling as every other API request.
     try {
-      const res = await fetch(`${process.env.API_BASE_URL ?? 'http://localhost:4010'}/api/v1/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const json = await res.json();
-        set({ authed: true, user: json.data?.user ?? null });
-      } else {
-        // Token invalid or expired — clear it
-        await clearToken();
-      }
+      const response = await getData<User | { user: User }>('/auth/me');
+      const user = 'user' in response ? response.user : response;
+      set({ authed: true, user });
     } catch {
-      // Network error — still mark as authed so the app can try to recover
-      set({ authed: true });
+      // A saved credential is not enough to establish an authenticated session.
+      // Fail closed on invalid tokens and unavailable authentication services.
+      await clearToken();
     }
   },
 }));

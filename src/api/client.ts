@@ -2,10 +2,10 @@ import axios, { AxiosError } from 'axios';
 import Constants from 'expo-constants';
 import { getToken, clearToken } from '../stores/session';
 
-const baseURL = (Constants.expoConfig?.extra?.apiBaseUrl as string) ?? '';
+export const apiBaseUrl = (Constants.expoConfig?.extra?.apiBaseUrl as string) ?? '';
 
 export const api = axios.create({
-  baseURL,
+  baseURL: apiBaseUrl,
   timeout: 15000,
   headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
 });
