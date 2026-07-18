@@ -69,3 +69,8 @@ export async function postData<T>(url: string, body?: object): Promise<T> {
   const res = await api.post<{ data: T }>(url, body);
   return res.data.data;
 }
+
+export async function deleteData<T>(url: string, body?: object): Promise<T> {
+  const res = await api.delete<{ data: T }>(url, { data: body });
+  return res.data.data;
+}

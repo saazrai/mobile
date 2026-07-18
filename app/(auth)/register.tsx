@@ -16,6 +16,8 @@ export default function RegisterScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordConfirmation, setPasswordConfirmation] = useState('');
+  const passwordsMatch = password.length > 0 && password === passwordConfirmation;
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: t.sysBg }]}>
@@ -56,14 +58,25 @@ export default function RegisterScreen() {
               accessibilityLabel="Password input field"
               accessibilityHint="Enter your password"
             />
+            <View style={[styles.sep, { backgroundColor: t.separator }]} />
+            <TextInput
+              style={[styles.field, { color: t.label }]}
+              placeholder="Confirm password" placeholderTextColor={t.label3}
+              secureTextEntry value={passwordConfirmation} onChangeText={setPasswordConfirmation}
+              accessibilityLabel="Confirm password input field"
+              accessibilityHint="Re-enter your password to confirm"
+            />
           </Animated.View>
 
+          {passwordConfirmation.length > 0 && !passwordsMatch && (
+            <Text variant="footnote" color="red" style={{ marginTop: spacing.md }}>Passwords don't match.</Text>
+          )}
           {register.isError && <Text variant="footnote" color="red" style={{ marginTop: spacing.md }}>{register.error.message}</Text>}
 
           <PressableScale
             style={[styles.btn, { backgroundColor: t.blue }, continuousCurve]}
-            onPress={() => register.mutate({ name, email, password })}
-            disabled={register.isPending || !name || !email || !password}
+            onPress={() => register.mutate({ name, email, password, password_confirmation: passwordConfirmation })}
+            disabled={register.isPending || !name || !email || !passwordsMatch}
             accessibilityLabel="Create account button"
             accessibilityHint="Creates a new account with the provided details"
           >

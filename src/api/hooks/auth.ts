@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import * as Device from 'expo-constants';
-import { getData, postData } from '../client';
+import { getData, postData, deleteData } from '../client';
 import { clearToken, setToken, useSession, type User } from '../../stores/session';
 
 interface AuthResponse {
@@ -41,7 +41,7 @@ export function useGoogleSignIn() {
 export function useRegister() {
   const setUser = useSession((s) => s.setUser);
   return useMutation({
-    mutationFn: (body: { name: string; email: string; password: string }) =>
+    mutationFn: (body: { name: string; email: string; password: string; password_confirmation: string }) =>
       postData<AuthResponse>('/auth/register', { ...body, device_name: deviceName, consent: true }),
     onSuccess: async (data) => {
       await setToken(data.token);
@@ -121,7 +121,7 @@ export interface AnonymizeAccountBody {
 export function useAnonymizeAccount() {
   return useMutation({
     mutationFn: (body: AnonymizeAccountBody) =>
-      postData<void>('/account', body),
+      deleteData<void>('/account', body),
     onSuccess: async () => {
       await clearToken();
     },
