@@ -78,9 +78,10 @@ export default function QuizRunner() {
     setQuestion(result.next_question); setSelected([]); setResult(null);
   };
 
+  const correctOpts = result?.correct_options ?? [];
   const optState = (opt: string): 'idle' | 'sel' | 'right' | 'wrong' => {
     if (!revealed) return selected.includes(opt) ? 'sel' : 'idle';
-    if (result!.correct_options.includes(opt)) return 'right';
+    if (correctOpts.includes(opt)) return 'right';
     if (selected.includes(opt)) return 'wrong';
     return 'idle';
   };
@@ -117,7 +118,8 @@ export default function QuizRunner() {
             {current.options.map((opt, i) => {
               const s = optState(opt);
               const blocked = atCap && !selected.includes(opt);
-              const rationale = revealed ? result!.justifications[i] : undefined;
+              const justifs = result?.justifications ?? [];
+              const rationale = revealed ? justifs[i] : undefined;
               return (
                 <PressableScale
                   key={i}
