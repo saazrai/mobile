@@ -1,19 +1,19 @@
 import { useState } from 'react';
-import { View, TextInput, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, TextInput, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { Text } from '../../src/components/Text';
 import { Icon } from '../../src/components/Icon';
 import { PressableScale } from '../../src/components/PressableScale';
-import { useLogin, useGoogleSignIn } from '../../src/api/hooks/auth';
+import { useRegister } from '../../src/api/hooks/auth';
 import { useTheme, spacing, radius, hairline, continuousCurve, shadow } from '../../src/theme/tokens';
 
-export default function LoginScreen() {
+export default function RegisterScreen() {
   const t = useTheme();
   const router = useRouter();
-  const login = useLogin();
-  const googleSignIn = useGoogleSignIn();
+  const register = useRegister();
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -22,14 +22,23 @@ export default function LoginScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <View style={styles.container}>
           <Animated.View entering={FadeInDown.duration(500).springify().damping(16)} style={[styles.logo, { backgroundColor: t.blue }, continuousCurve, shadow.card]}>
-            <Icon name="shield" size={30} color="#fff" />
+            <Icon name="userPlus" size={28} color="#fff" />
           </Animated.View>
-          <Animated.View entering={FadeIn.delay(120).duration(400)}>
-            <Text variant="title1" style={styles.h1}>Welcome back</Text>
-            <Text variant="subhead" color="label2" style={{ marginTop: 4, textAlign: 'center' }}>Sign in to keep your streak going</Text>
+
+          <Animated.View entering={FadeInDown.delay(120).duration(400)}>
+            <Text variant="title1" style={styles.h1}>Create account</Text>
+            <Text variant="subhead" color="label2" style={{ marginTop: 8, textAlign: 'center' }}>
+              Enter your details to get started. Email must be verified first.
+            </Text>
           </Animated.View>
 
           <Animated.View entering={FadeInDown.delay(160).duration(500).springify().damping(18)} style={[styles.card, { backgroundColor: t.cell }, continuousCurve]}>
+            <TextInput
+              style={[styles.field, { color: t.label }]}
+              placeholder="Full name" placeholderTextColor={t.label3}
+              autoCapitalize="words" value={name} onChangeText={setName}
+            />
+            <View style={[styles.sep, { backgroundColor: t.separator }]} />
             <TextInput
               style={[styles.field, { color: t.label }]}
               placeholder="Email" placeholderTextColor={t.label3}
@@ -43,33 +52,22 @@ export default function LoginScreen() {
             />
           </Animated.View>
 
-          {login.isError && <Text variant="footnote" color="red" style={{ marginTop: spacing.md }}>{login.error.message}</Text>}
+          {register.isError && <Text variant="footnote" color="red" style={{ marginTop: spacing.md }}>{register.error.message}</Text>}
 
           <PressableScale
             style={[styles.btn, { backgroundColor: t.blue }, continuousCurve]}
-            onPress={() => login.mutate({ email, password })}
-            disabled={login.isPending || googleSignIn.isPending}
+            onPress={() => register.mutate({ name, email, password })}
+            disabled={register.isPending || !name || !email || !password}
           >
-            {login.isPending ? <ActivityIndicator color="#fff" /> : <Text variant="headline" color="onColor">Sign in</Text>}
-          </PressableScale>
-
-          <PressableScale style={[styles.btnGhost, { borderColor: t.separator }, continuousCurve]} onPress={() => Alert.alert('Coming soon', 'Google Sign-In will be available in a future update.')}>
-            <>
-              <Icon name="shareForward" size={16} color="#007aff" />
-              <Text variant="headline" color="blue" style={{ marginLeft: spacing.sm }}>Continue with Google</Text>
-            </>
+            {register.isPending ? <ActivityIndicator color="#fff" /> : <Text variant="headline" color="onColor">Create account</Text>}
           </PressableScale>
 
           <View style={styles.footRow}>
-            <Text variant="subhead" color="label2">New here? </Text>
-            <PressableScale onPress={() => router.push('/(auth)/register')}>
-              <Text variant="subhead" color="blue">Create account</Text>
+            <Text variant="subhead" color="label2">Already have an account? </Text>
+            <PressableScale onPress={() => router.back()}>
+              <Text variant="subhead" color="blue">Sign in</Text>
             </PressableScale>
           </View>
-
-          <PressableScale style={[styles.linkBtn, { marginTop: spacing.sm }]} onPress={() => router.push('/(auth)/forgot-password')}>
-            <Text variant="footnote" color="blue">Forgot password?</Text>
-          </PressableScale>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -85,7 +83,5 @@ const styles = StyleSheet.create({
   field: { paddingHorizontal: spacing.lg, paddingVertical: 14, fontSize: 17 },
   sep: { height: hairline, marginLeft: spacing.lg },
   btn: { marginTop: spacing.lg, borderRadius: radius.control, paddingVertical: 15, alignItems: 'center' },
-  btnGhost: { marginTop: spacing.md, borderRadius: radius.control, paddingVertical: 15, alignItems: 'center', borderWidth: hairline, flexDirection: 'row', justifyContent: 'center' },
-  linkBtn: { alignSelf: 'center' },
   footRow: { flexDirection: 'row', justifyContent: 'center', marginTop: spacing.xl },
 });

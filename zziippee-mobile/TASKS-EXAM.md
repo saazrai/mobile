@@ -23,7 +23,7 @@ One scope gap remains open — see task 2/5 below and
    **Not done:** the results payload only implements `summary.domains.performance`. `summary.topics`, `summary.blooms`, `advanced_analytics` (time_analysis/confidence_signals), `action_plan`, and `historical_summary` are not implemented — the mock's question fixtures don't carry Bloom/topic/timing data to make them meaningful. This was a deliberate scope cut, not an oversight; §8.10 documents it so it isn't mistaken for the full contract.
 
 3. ✅ **Build exam list screen** (`app/learn/[product]/exams/index.tsx`)
-   Screen L: stat row (questions · duration · passing % · attempts), CTA (Resume/Start), policy-driven guidelines, cooldown/attempts-exhausted banner, `can_take_exam` disabled state. Loading/error-with-retry/empty states added after the initial build (see Status above).
+   Screen L: stat row (questions · duration · passing %; attempt count badge on card head), CTA (Resume/Start), policy-driven guidelines, attempts-exhausted banner, `can_take_exam` disabled state. Loading/error-with-retry/empty states added after the initial build (see Status above).
 
 4. ✅ **Build exam runner screen** (`app/exam/[id]/runner.tsx`)
    Screen M: countdown timer (amber <5min, red <1min, heartbeat re-sync), locked-nav mode (hide palette, no Previous), navigable mode (question palette, backtrack), submit-answer advance, review-gate state (show all questions, edit prior answers, End Review → lock → End Exam), submit control disables on press. Radio-button border fix applied after the initial build (see Status above).

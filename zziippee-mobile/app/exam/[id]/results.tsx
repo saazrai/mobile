@@ -6,7 +6,7 @@ import { Text } from '../../../src/components/Text';
 import { Icon } from '../../../src/components/Icon';
 import { PressableScale } from '../../../src/components/PressableScale';
 import { ProgressRing } from '../../../src/components/ProgressRing';
-import { useExamResults, type ExamDomainPerformance } from '../../../src/api/hooks/exam';
+import { useExamResults, type ExamDomainPerformance, type ExamBloomPerformance, type ExamTopicPerformance, type ExamConfidenceSignal, type ExamActionPlanItem } from '../../../src/api/hooks/exam';
 import { useTheme, spacing, radius, hairline, continuousCurve, shadow, type Palette } from '../../../src/theme/tokens';
 
 /** Screen N — Exam Results (docs/08-exam-spec.md §8.7). Score vs the exam's own
@@ -34,10 +34,14 @@ export default function ExamResultsScreen() {
     );
   }
 
-  const { assessment, summary } = data;
+  const { assessment, summary, advanced_analytics, action_plan, historical_summary } = data;
   const isPassing = assessment.score >= data.passing_percentage;
   const scoreColor = isPassing ? t.green : t.red;
   const domains = summary.domains.performance;
+  const blooms = summary.blooms;
+  const topics = summary.topics;
+  const timeAnalysis = advanced_analytics.time_analysis;
+  const confidenceSignals = advanced_analytics.confidence_signals;
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: t.sysBg }]}>
@@ -76,6 +80,84 @@ export default function ExamResultsScreen() {
             <View style={[styles.card, { backgroundColor: t.cell }, continuousCurve, shadow.card]}>
               {domains.map((d, i) => (
                 <DomainBar key={d.id} domain={d} t={t} isLast={i === domains.length - 1} passingPercentage={data.passing_percentage} />
+              ))}
+            </View>
+          </>
+        )}
+
+        {blooms.length > 0 && (
+          <>
+            <Text variant="footnote" color="label2" style={styles.sectionHeader}>COGNITIVE PROFILE</Text>
+            <View style={[styles.card, { backgroundColor: t.cell }, continuousCurve, shadow.card]}>
+              {blooms.map((b, i) => (
+                <BloomBar key={b.level} bloom={b} t={t} isLast={i === blooms.length - 1} passingPercentage={data.passing_percentage} />
+              ))}
+            </View>
+          </>
+        )}
+
+        {topics.length > 0 && (
+          <>
+            <Text variant="footnote" color="label2" style={styles.sectionHeader}>STRENGTHS & FOCUS AREAS</Text>
+            <View style={[styles.card, { backgroundColor: t.cell }, continuousCurve, shadow.card]}>
+              {topics.filter((tp) => tp.accuracy >= 75).map((tp, i) => (
+                <TopicRow key={`s-${i}`} topic={tp} type="strength" t={t} />
+              ))}
+              {topics.filter((tp) => tp.accuracy < 55).length > 0 && topics.filter((tp) => tp.accuracy >= 75).length > 0 && (
+                <View style={[styles.sep, { backgroundColor: t.separator }]} />
+              )}
+              {topics.filter((tp) => tp.accuracy < 55).map((tp, i) => (
+                <TopicRow key={`f-${i}`} topic={tp} type="focus" t={t} />
+              ))}
+              {topics.every((tp) => tp.accuracy >= 55 && tp.accuracy < 75) && (
+                <Text variant="body" color="label2" style={{ paddingVertical: spacing.md }}>All topics within average range (55-74%).</Text>
+              )}
+            </View>
+          </>
+        )}
+
+        {(timeAnalysis.avg_correct_seconds !== null || confidenceSignals.length > 0) && (
+          <>
+            <Text variant="footnote" color="label2" style={styles.sectionHeader}>TIME INTELLIGENCE</Text>
+            <View style={[styles.card, { backgroundColor: t.cell }, continuousCurve, shadow.card]}>
+              {(timeAnalysis.avg_correct_seconds !== null || timeAnalysis.avg_incorrect_seconds !== null) && (
+                <View style={styles.timeRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text variant="footnote" color="label2">Avg. correct answer</Text>
+                    <Text variant="headline" style={{ marginTop: 2 }}>{timeAnalysis.avg_correct_seconds !== null ? `${timeAnalysis.avg_correct_seconds}s` : 'N/A'}</Text>
+                  </View>
+                  <View style={[styles.timeDivider, { backgroundColor: t.separator }]} />
+                  <View style={{ flex: 1 }}>
+                    <Text variant="footnote" color="label2">Avg. incorrect answer</Text>
+                    <Text variant="headline" style={{ marginTop: 2 }}>{timeAnalysis.avg_incorrect_seconds !== null ? `${timeAnalysis.avg_incorrect_seconds}s` : 'N/A'}</Text>
+                  </View>
+                </View>
+              )}
+              {confidenceSignals.length > 0 && (
+                <>
+                  <View style={[styles.sep, { backgroundColor: t.separator }]} />
+                  {confidenceSignals.map((signal, i) => (
+                    <View key={i} style={styles.signalRow}>
+                      <Icon name={signal.type === 'high_confidence_correct' ? 'check' : 'clock'} size={14} color={signal.type === 'high_confidence_correct' ? t.green : t.orange} />
+                      <Text variant="body" style={{ flex: 1, marginLeft: spacing.sm }}>
+                        {signal.type === 'high_confidence_correct'
+                          ? `Answered correctly in ${signal.seconds}s`
+                          : `Took ${signal.seconds}s but answered correctly`}
+                      </Text>
+                    </View>
+                  ))}
+                </>
+              )}
+            </View>
+          </>
+        )}
+
+        {action_plan.length > 0 && (
+          <>
+            <Text variant="footnote" color="label2" style={styles.sectionHeader}>ACTION PLAN</Text>
+            <View style={[styles.card, { backgroundColor: t.cell }, continuousCurve, shadow.card]}>
+              {action_plan.map((item, i) => (
+                <ActionPlanRow key={i} item={item} t={t} isLast={i === action_plan.length - 1} />
               ))}
             </View>
           </>
@@ -121,6 +203,62 @@ function DomainBar({ domain, t, isLast, passingPercentage }: { domain: ExamDomai
   );
 }
 
+const BLOOM_COLORS = ['blue', 'indigo', 'green', 'orange'] as const;
+function bloomColor(level: string): string {
+  const idx = ['remember', 'understand', 'apply', 'analyze'].indexOf(level);
+  return BLOOM_COLORS[idx] ?? 'blue';
+}
+
+function BloomBar({ bloom, t, isLast, passingPercentage }: { bloom: ExamBloomPerformance; t: Palette; isLast: boolean; passingPercentage: number }) {
+  const color = bloom.accuracy >= 75 ? t.green : bloom.accuracy >= 55 ? t.orange : t.red;
+  return (
+    <View>
+      <View style={styles.domainRow}>
+        <View style={{ flex: 1, marginRight: spacing.md }}>
+          <Text variant="body" numberOfLines={1}>{bloom.level.charAt(0).toUpperCase() + bloom.level.slice(1)}</Text>
+          <View style={[styles.track, { backgroundColor: t.fill }]}>
+            <View style={[styles.fill, { backgroundColor: color, width: `${bloom.accuracy}%` }]} />
+            <View style={[styles.passMarker, { left: `${passingPercentage}%`, backgroundColor: t.label3 }]} />
+          </View>
+        </View>
+        <Text variant="headline" style={{ color }}>{bloom.accuracy}%</Text>
+      </View>
+      {!isLast && <View style={[styles.sep, { backgroundColor: t.separator }]} />}
+    </View>
+  );
+}
+
+function TopicRow({ topic, type, t }: { topic: ExamTopicPerformance; type: 'strength' | 'focus'; t: Palette }) {
+  const color = type === 'strength' ? t.green : t.red;
+  return (
+    <View style={styles.topicRow}>
+      <View style={[styles.topicDot, { backgroundColor: color }]} />
+      <View style={{ flex: 1 }}>
+        <Text variant="body">{topic.topic}</Text>
+        <Text variant="footnote" color="label2">{topic.domain} · {topic.accuracy}% accuracy</Text>
+      </View>
+    </View>
+  );
+}
+
+function ActionPlanRow({ item, t, isLast }: { item: ExamActionPlanItem; t: Palette; isLast: boolean }) {
+  return (
+    <View>
+      <View style={styles.actionRow}>
+        <Icon name={item.priority === 'high' ? 'flag' : 'bookmark'} size={14} color={item.priority === 'high' ? t.red : t.orange} />
+        <View style={{ flex: 1, marginLeft: spacing.sm }}>
+          <Text variant="body">{item.topic}</Text>
+          <Text variant="footnote" color="label2">{item.domain} · {item.accuracy}% accuracy</Text>
+        </View>
+        <View style={[styles.priorityBadge, { backgroundColor: item.priority === 'high' ? `${t.red}22` : `${t.orange}22` }]}>
+          <Text variant="caption" style={{ color: item.priority === 'high' ? t.red : t.orange, fontWeight: '600' }}>{item.priority}</Text>
+        </View>
+      </View>
+      {!isLast && <View style={[styles.sep, { backgroundColor: t.separator }]} />}
+    </View>
+  );
+}
+
 function formatDuration(totalSeconds: number): string {
   const m = Math.floor(totalSeconds / 60);
   const s = totalSeconds % 60;
@@ -141,6 +279,13 @@ const styles = StyleSheet.create({
   fill: { height: 6, borderRadius: 3 },
   passMarker: { position: 'absolute', top: -3, width: 2, height: 12 },
   sep: { height: hairline },
+  topicRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md },
+  topicDot: { width: 8, height: 8, borderRadius: 4, marginRight: spacing.sm },
+  timeRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, gap: spacing.lg },
+  timeDivider: { width: hairline, height: 32 },
+  signalRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.xs },
+  actionRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, gap: spacing.sm },
+  priorityBadge: { paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: radius.pill },
   reviewCta: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderRadius: radius.cell, padding: spacing.lg, marginTop: spacing.xl },
   footbar: { position: 'absolute', left: 0, right: 0, bottom: 0, padding: spacing.xl, paddingTop: spacing.md, borderTopWidth: hairline },
   doneBtn: { borderRadius: radius.control, paddingVertical: 15, alignItems: 'center' },

@@ -479,6 +479,33 @@ const QUESTION_DOMAIN = {
 };
 function domainFor(id) { return QUESTION_DOMAIN[id] ?? 'General'; }
 
+// Topic sub-categories within each domain — mirrors the real backend's
+// curriculum tree (topics → objectives → domains). The mock attaches these
+// directly to fixtures since there are only ~18 questions.
+const QUESTION_TOPIC = {
+  201: 'Risk identification', 203: 'Ethical frameworks', 204: 'Governance structures',
+  202: 'Professional conduct', 205: 'Conflict of interest',
+  401: 'CVSS scoring', 403: 'Patch management', 404: 'Vulnerability scanning',
+  407: 'Risk assessment', 409: 'Threat modeling', 412: 'Security controls',
+  402: 'Log analysis', 406: 'Threat detection', 408: 'Incident handling',
+  410: 'Security monitoring', 411: 'Baseline configuration',
+  405: 'Containment procedures',
+  413: 'Stakeholder communication',
+};
+
+// Bloom taxonomy cognitive levels — mapped from question difficulty and content.
+// remember/understand for lower difficulty, apply/analyze for higher.
+const QUESTION_BLOOM = {
+  201: 'evaluate', 202: 'understand', 203: 'apply', 204: 'remember', 205: 'analyze',
+  401: 'apply', 402: 'remember', 403: 'understand', 404: 'analyze',
+  405: 'apply', 406: 'remember', 407: 'evaluate', 408: 'analyze',
+  409: 'evaluate', 410: 'remember', 411: 'understand', 412: 'apply',
+  413: 'analyze',
+};
+
+function topicFor(id) { return QUESTION_TOPIC[id] ?? 'General'; }
+function bloomFor(id) { return QUESTION_BLOOM[id] ?? 'remember'; }
+
 // ---- exam simulations (docs/08-exam-spec.md §8.4) ----
 // Three exam_types mirroring the real zziippee `ExamTypesSeeder`. `cat` is seeded
 // but `is_active: false` — no CAT runtime engine exists on the real backend either
@@ -757,7 +784,10 @@ const server = createServer((req, res) => {
       return ok(res, { course: { name: c.name, code: c.code, vendor: `${c.vendor} · ${c.examCode}`, art: c.art }, tiles: [{ slug: 'practice', name: 'Practice', enabled: true }, { slug: 'study-notes', name: 'Study notes', enabled: true }, { slug: 'flashcards', name: 'Flashcards', enabled: true }, { slug: 'videos', name: 'Videos', enabled: true }] });
     }
     if (seg[0] === 'learn' && seg[2] === 'domains') return ok(res, [{ id: 1, number: '1', name: 'Security and Risk Management', slug: 'security-risk-management', weight_percentage: 30, mastery_percent: 44, objectives: [{ id: 14, number: '1.4', name: 'Professional ethics', slug: 'ethics', questions_count: 5, mastery_percent: 44, latest_assessment: null }] }]);
-    if (seg[0] === 'learn' && seg[2] === 'flashcards') return ok(res, FLASHCARDS);
+    if (seg[0] === 'learn' && seg[2] === 'flashcards' && seg.length === 3) {
+      if (req.method === 'POST' && seg[3] === 'swipe') return ok(res, null, 202); // fire-and-forget grade
+      return ok(res, FLASHCARDS);
+    }
     if (seg[0] === 'learn' && seg[2] === 'study-notes') return ok(res, STUDY_BLOCKS[seg[3]] ?? STUDY_BLOCKS.intro);
     if (seg[0] === 'learn' && seg[2] === 'videos') return ok(res, [{ id: 1, title: 'PKI & trust chains', url: 'https://example.com/v.mp4', duration_seconds: 252, thumbnail_url: null }]);
 
@@ -981,7 +1011,88 @@ const server = createServer((req, res) => {
         if (s.answers[i]?.is_correct) bucket.correct += 1;
         byDomain.set(d, bucket);
       });
-      const domains = [...byDomain.values()].map((b) => ({ ...b, accuracy: b.total ? Math.round((b.correct / b.total) * 100) : 0 }));
+      const domains = [...byDomain.values()].map((b) => ({ ...b, id: b.name, accuracy: b.total ? Math.round((b.correct / b.total) * 100) : 0 }));
+
+      // summary.topics — per-domain topic accuracy breakdown
+      const byTopic = new Map();
+      s.pool.forEach((q, i) => {
+        const d = domainFor(q.id);
+        const t = topicFor(q.id);
+        const key = `${d}|||${t}`;
+        const bucket = byTopic.get(key) ?? { domain: d, topic: t, total: 0, correct: 0 };
+        bucket.total += 1;
+        if (s.answers[i]?.is_correct) bucket.correct += 1;
+        byTopic.set(key, bucket);
+      });
+      const topics = [...byTopic.values()].map((b) => ({ ...b, accuracy: b.total ? Math.round((b.correct / b.total) * 100) : 0 }));
+
+      // summary.blooms — cognitive level breakdown
+      const byBloom = new Map();
+      s.pool.forEach((q, i) => {
+        const bl = bloomFor(q.id);
+        const bucket = byBloom.get(bl) ?? { level: bl, total: 0, correct: 0 };
+        bucket.total += 1;
+        if (s.answers[i]?.is_correct) bucket.correct += 1;
+        byBloom.set(bl, bucket);
+      });
+      const blooms = [...byBloom.values()].map((b) => ({ ...b, accuracy: b.total ? Math.round((b.correct / b.total) * 100) : 0 }));
+
+      // advanced_analytics.time_analysis — per-question timing aggregated
+      let totalCorrectTime = 0;
+      let correctCountWithTime = 0;
+      let totalIncorrectTime = 0;
+      let incorrectCountWithTime = 0;
+      const fastCorrect = []; // answered correctly in <20s
+      const slowCorrect = []; // answered correctly but took >90s
+      s.answers.forEach((ans, i) => {
+        const dur = ans.duration ?? 0;
+        if (dur === 0) return; // no timing data for this answer
+        if (ans.is_correct) {
+          totalCorrectTime += dur;
+          correctCountWithTime += 1;
+          if (dur < 20) fastCorrect.push({ question_id: s.pool[i]?.id, seconds: Math.round(dur) });
+          else if (dur > 90) slowCorrect.push({ question_id: s.pool[i]?.id, seconds: Math.round(dur) });
+        } else {
+          totalIncorrectTime += dur;
+          incorrectCountWithTime += 1;
+        }
+      });
+      const avgCorrectSeconds = correctCountWithTime > 0 ? Math.round(totalCorrectTime / correctCountWithTime * 10) / 10 : null;
+      const avgIncorrectSeconds = incorrectCountWithTime > 0 ? Math.round(totalIncorrectTime / incorrectCountWithTime * 10) / 10 : null;
+
+      // advanced_analytics.confidence_signals — derived from time vs correctness
+      const confidenceSignals = [];
+      if (fastCorrect.length > 0) {
+        fastCorrect.forEach((fc) => {
+          confidenceSignals.push({ type: 'high_confidence_correct', question_id: fc.question_id, seconds: fc.seconds });
+        });
+      }
+      if (slowCorrect.length > 0) {
+        slowCorrect.forEach((sc) => {
+          confidenceSignals.push({ type: 'low_confidence_correct', question_id: sc.question_id, seconds: sc.seconds });
+        });
+      }
+
+      // action_plan — weak topics (accuracy <70%), sorted ascending by accuracy
+      const actionPlan = topics
+        .filter((t) => t.accuracy < 70)
+        .map((t) => ({
+          domain: t.domain,
+          topic: t.topic,
+          total: t.total,
+          correct: t.correct,
+          accuracy: t.accuracy,
+          priority: t.accuracy < 50 ? 'high' : 'medium',
+        }))
+        .sort((a, b) => a.accuracy - b.accuracy);
+
+      // historical_summary — minimal for single-user mock (each exam start creates a new session)
+      const historicalSummary = {
+        total_attempts: 1,
+        best_score: score,
+        improvement_trend: null,
+      };
+
       return ok(res, {
         assessment: {
           id: s.id, status: s.status, score,
@@ -993,7 +1104,10 @@ const server = createServer((req, res) => {
         exam_type_name: examTypeByCode(s.examTypeCode).name,
         passing_percentage: setting.passingPercentage,
         can_review: s.policy.allow_review_after_submit,
-        summary: { domains: { performance: domains } },
+        summary: { domains: { performance: domains }, topics, blooms },
+        advanced_analytics: { time_analysis: { avg_correct_seconds: avgCorrectSeconds, avg_incorrect_seconds: avgIncorrectSeconds, fast_correct: fastCorrect, slow_correct: slowCorrect }, confidence_signals: confidenceSignals },
+        action_plan,
+        historical_summary,
       });
     }
 
@@ -1010,6 +1124,39 @@ const server = createServer((req, res) => {
         question: { id: q.id, content: q.content, options: q.options, correct_options: q.correct, justifications: q.justifications },
       }));
       return ok(res, { responses });
+    }
+
+    // learner proficiency — /learner/proficiency/:productSlug
+    if (seg[0] === 'learner' && seg[2] === 'proficiency') {
+      const courseSlug = seg[1];
+      const c = COURSES.find((x) => x.slug === courseSlug) ?? COURSES[0];
+      // Derive per-domain scores from the exam sessions this user has completed for this product.
+      const productSessions = [...examSessions.values()].filter((s) => s.courseSlug === courseSlug && s.status === 'completed');
+      const poolSize = poolForCourse(courseSlug).length;
+      const byDomain = new Map();
+      productSessions.forEach((s) => {
+        s.pool.forEach((q, i) => {
+          const dName = domainFor(q.id);
+          const bucket = byDomain.get(dName) ?? { total: 0, correct: 0, bestLevel: 0 };
+          bucket.total += 1;
+          if (s.answers[i]?.is_correct) bucket.correct += 1;
+          // Level = accuracy tier: >=80 → 5, >=60 → 4, >=40 → 3, >=20 → 2, else 1.
+          const acc = Math.round((bucket.correct / bucket.total) * 100);
+          if (acc > bucket.bestLevel * 20) bucket.bestLevel = Math.min(5, Math.max(1, Math.ceil(acc / 20)));
+          byDomain.set(dName, bucket);
+        });
+      });
+      const domains = {};
+      let totalAcc = 0;
+      let count = 0;
+      for (const [name, b] of byDomain) {
+        const acc = b.total ? Math.round((b.correct / b.total) * 100) : 0;
+        const level = Math.min(5, Math.max(1, Math.ceil(acc / 20)));
+        domains[name] = { proficiency_score: acc, level, label: name, best_level: b.bestLevel, attempts_count: productSessions.length, coverage: Math.min(100, Math.round((b.total / poolSize) * 100)) };
+        totalAcc += acc; count += 1;
+      }
+      const overall = count > 0 ? Math.round(totalAcc / count) : (productSessions.length === 0 ? 0 : 50); // seed a default if no sessions yet
+      return ok(res, { product_slug: courseSlug, product_name: c.name, overall_score: overall, domains });
     }
 
     res.writeHead(404, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });

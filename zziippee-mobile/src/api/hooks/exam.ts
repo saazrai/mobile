@@ -141,7 +141,60 @@ export interface ExamResults {
   exam_type_name: string;
   passing_percentage: number;
   can_review: boolean;
-  summary: { domains: { performance: ExamDomainPerformance[] } };
+  summary: {
+    domains: { performance: ExamDomainPerformance[] };
+    topics: ExamTopicPerformance[];
+    blooms: ExamBloomPerformance[];
+  };
+  advanced_analytics: {
+    time_analysis: ExamTimeAnalysis;
+    confidence_signals: ExamConfidenceSignal[];
+  };
+  action_plan: ExamActionPlanItem[];
+  historical_summary: ExamHistoricalSummary;
+}
+
+export interface ExamTopicPerformance {
+  domain: string;
+  topic: string;
+  total: number;
+  correct: number;
+  accuracy: number;
+}
+
+export interface ExamBloomPerformance {
+  level: 'remember' | 'understand' | 'apply' | 'analyze' | 'evaluate' | 'create';
+  total: number;
+  correct: number;
+  accuracy: number;
+}
+
+export interface ExamTimeAnalysis {
+  avg_correct_seconds: number | null;
+  avg_incorrect_seconds: number | null;
+  fast_correct: Array<{ question_id: number; seconds: number }>;
+  slow_correct: Array<{ question_id: number; seconds: number }>;
+}
+
+export interface ExamConfidenceSignal {
+  type: 'high_confidence_correct' | 'low_confidence_correct';
+  question_id: number;
+  seconds: number;
+}
+
+export interface ExamActionPlanItem {
+  domain: string;
+  topic: string;
+  total: number;
+  correct: number;
+  accuracy: number;
+  priority: 'high' | 'medium';
+}
+
+export interface ExamHistoricalSummary {
+  total_attempts: number;
+  best_score: number;
+  improvement_trend: 'improving' | 'declining' | 'stable' | null;
 }
 
 export interface ExamReviewResponse {

@@ -61,6 +61,54 @@ export function useStartObjective() {
   });
 }
 
+/** Domain test start — returns full question set up front (fixed preset). */
+export interface DomainStartResult {
+  assessment_id: string;
+  questions: Question[];
+  progress: AdaptiveProgress;
+}
+
+export function useStartDomain() {
+  return useMutation({
+    mutationFn: (domainSlug: string) =>
+      postData<DomainStartResult>(`/practice/domains/${domainSlug}/start`),
+  });
+}
+
+/** Domain test answer — no reveal, returns only {saved: true, progress}. */
+export interface DomainAnswerResult {
+  saved: boolean;
+  progress: AdaptiveProgress;
+}
+
+export function useDomainAnswer(assessmentId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { question_id: number; selected_options: string[] }) =>
+      postData<DomainAnswerResult>(`/assessments/${assessmentId}/answer`, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+/** Domain test submit — returns final score only. */
+export interface DomainSubmitResult {
+  score: number;
+  correct_answers: number;
+  total_questions: number;
+}
+
+export function useSubmitDomain(assessmentId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => postData<DomainSubmitResult>(`/assessments/${assessmentId}/submit`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
 /**
  * Submit an answer. Correctness/adaptivity/scoring are decided server-side; the
  * app renders only what comes back. Never cached — always hits the network.

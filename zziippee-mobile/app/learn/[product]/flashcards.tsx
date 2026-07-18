@@ -9,6 +9,7 @@ import * as Haptics from 'expo-haptics';
 import { getData } from '../../../src/api/client';
 import { Text } from '../../../src/components/Text';
 import { Icon } from '../../../src/components/Icon';
+import { useSwipeCard, type SwipeGradeBody } from '../../../src/api/hooks/flashcards';
 import { useTheme, spacing, radius, hairline, type Palette } from '../../../src/theme/tokens';
 
 const { width: W, height: H } = Dimensions.get('window');
@@ -24,10 +25,16 @@ export default function FlashcardsScreen() {
   const { product } = useLocalSearchParams<{ product: string }>();
   const { data: cards } = useQuery({ queryKey: ['flashcards', product], queryFn: () => getData<Flashcard[]>(`/learn/${product}/flashcards`), staleTime: 600_000 });
 
+  // Fire-and-forget swipe tracking — grade is sent but never blocks advancement.
+  const swipe = useSwipeCard(product);
+
   const [index, setIndex] = useState(0);
   const total = cards?.length ?? 0;
   const card = cards?.[index];
-  const advance = useCallback(() => setIndex((i) => i + 1), []);
+  const advance = useCallback((grade?: 'know' | 'again' | 'skip') => {
+    if (card && grade) swipe.mutate({ card_id: card.id, grade } as SwipeGradeBody);
+    setIndex((i) => i + 1);
+  }, [card, swipe]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!cards) return <Center t={t}><Text color="label2">Loading deck…</Text></Center>;
   if (!card) return (
@@ -52,8 +59,8 @@ export default function FlashcardsScreen() {
       <SwipeCard key={card.id} card={card} t={t} onGrade={advance} />
 
       <View style={styles.actions}>
-        <Pressable style={[styles.fab, { backgroundColor: t.cell, borderColor: t.separator }]} onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); advance(); }}><Icon name="x" size={24} color={t.red} /></Pressable>
-        <Pressable style={[styles.fab, { backgroundColor: t.cell, borderColor: t.separator }]} onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); advance(); }}><Icon name="check" size={24} color={t.green} /></Pressable>
+        <Pressable style={[styles.fab, { backgroundColor: t.cell, borderColor: t.separator }]} onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); advance('again'); }}><Icon name="x" size={24} color={t.red} /></Pressable>
+        <Pressable style={[styles.fab, { backgroundColor: t.cell, borderColor: t.separator }]} onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); advance('know'); }}><Icon name="check" size={24} color={t.green} /></Pressable>
       </View>
     </SafeAreaView>
   );
