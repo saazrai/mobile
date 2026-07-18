@@ -132,7 +132,9 @@ export function useAnswer(assessmentId: string, productSlug: string) {
       question_elapsed_seconds?: number;
     }) => postData<AnswerResult>(`/learn/${productSlug}/assessments/${assessmentId}/answer`, body),
     onSuccess: () => {
-      // Progress/proficiency changed — let dashboard refetch on next focus.
+      // Progress changed — refetch the assessment so progress.answered stays fresh
+      // for the quiz runner's header counter, and invalidate dashboard for side effects.
+      qc.refetchQueries({ queryKey: ['assessment', assessmentId] });
       qc.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });

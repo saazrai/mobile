@@ -27,10 +27,6 @@ export default function QuizRunner() {
   const [selected, setSelected] = useState<string[]>([]);
   const [result, setResult] = useState<AnswerResult | null>(null);
   const [question, setQuestion] = useState<Question | null>(null);
-  // `useAssessment` is fetched once on mount and never refetched as you move through
-  // questions locally, so its `progress.answered` goes stale after the first question.
-  // Track it locally instead, seeded from the query once it loads.
-  const [answeredOverride, setAnsweredOverride] = useState<number | null>(null);
 
   const current = question ?? state?.question ?? null;
   const expected = current?.expected_selection_count ?? 1;
@@ -59,7 +55,7 @@ export default function QuizRunner() {
     setSelected((p) => [...p, opt]);
   };
 
-  const answeredCount = answeredOverride ?? state?.progress?.answered ?? 0;
+  const answeredCount = state?.progress?.answered ?? 0;
 
   const onSubmit = async () => {
     if (!current) return;
@@ -70,11 +66,6 @@ export default function QuizRunner() {
 
   const onNext = () => {
     if (!result) return;
-    // Advance the header count only now — at Submit time we're still showing the
-    // just-answered question's reveal state, so bumping it there made the number
-    // jump early instead of in sync with the new question actually appearing.
-    const p = result?.progress;
-    if (p) setAnsweredOverride(p.answered);
     if (result.is_done) return router.replace(`/assessment/${id}/review?product=${product}`);
     setQuestion(result.next_question); setSelected([]); setResult(null);
   };
