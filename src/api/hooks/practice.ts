@@ -35,6 +35,31 @@ export interface AnswerResult {
   review_url: string | null;
 }
 
+/**
+ * The stateful mock exposes `progress`, while the production controller returns
+ * adaptive-progress fields separately (and uses snake_case for resume data).
+ * Normalize both at the API boundary so runners only ever consume one shape.
+ */
+function normalizeProgress(payload: any): AdaptiveProgress {
+  const adaptive = payload.adaptive_progress ?? payload.progress ?? {};
+  const resumeProgress = payload.progress ?? {};
+
+  return {
+    answered: adaptive.answered ?? payload.answered_count ?? resumeProgress.answered_count ?? 0,
+    estimatedTotal: adaptive.estimatedTotal ?? payload.total_questions ?? resumeProgress.total_questions ?? 0,
+    currentDifficulty: adaptive.currentDifficulty ?? 3,
+    minQuestions: adaptive.minQuestions ?? 0,
+  };
+}
+
+function normalizeAssessmentState(payload: any): AssessmentState {
+  return { ...payload, progress: normalizeProgress(payload) };
+}
+
+function normalizeAnswerResult(payload: any): AnswerResult {
+  return { ...payload, progress: normalizeProgress(payload) };
+}
+
 /** Domain tree — read-mostly, cache aggressively (rarely changes). */
 export function useDomains(productSlug: string) {
   return useQuery({
@@ -52,7 +77,7 @@ export function useDomains(productSlug: string) {
 export function useAssessment(assessmentId: string | undefined, productSlug: string | undefined) {
   return useQuery({
     queryKey: ['assessment', assessmentId],
-    queryFn: () => getData<AssessmentState>(`/learn/${productSlug}/assessments/${assessmentId}`),
+    queryFn: async () => normalizeAssessmentState(await getData(`/learn/${productSlug}/assessments/${assessmentId}`)),
     enabled: !!assessmentId && !!productSlug,
     staleTime: 0, // live state — never serve stale
   });
@@ -126,11 +151,11 @@ export function useSubmitDomain(assessmentId: string, productSlug: string) {
 export function useAnswer(assessmentId: string, productSlug: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: {
+    mutationFn: async (body: {
       question_id: number;
       selected_options: string[];
       question_elapsed_seconds?: number;
-    }) => postData<AnswerResult>(`/learn/${productSlug}/assessments/${assessmentId}/answer`, body),
+    }) => normalizeAnswerResult(await postData(`/learn/${productSlug}/assessments/${assessmentId}/answer`, body)),
     onSuccess: (res) => {
       // Progress changed — synchronously patch the assessment cache so the
       // quiz runner's header counter reflects the new count on the very next render,
