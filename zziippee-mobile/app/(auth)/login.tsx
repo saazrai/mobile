@@ -55,7 +55,7 @@ export default function LoginScreen() {
 
           <PressableScale style={[styles.btnGhost, { borderColor: t.separator }, continuousCurve]} onPress={() => Alert.alert('Coming soon', 'Google Sign-In will be available in a future update.')}>
             <>
-              <Icon name="shareForward" size={16} color="#007aff" />
+              <Icon name="shareForward" size={16} color={t.blue} />
               <Text variant="headline" color="blue" style={{ marginLeft: spacing.sm }}>Continue with Google</Text>
             </>
           </PressableScale>

@@ -40,6 +40,8 @@ export default function VerifyEmailScreen() {
                   style={[styles.field, { color: t.label }]}
                   placeholder="Email" placeholderTextColor={t.label3}
                   autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail}
+                  accessibilityLabel="Email input field for verification code"
+                  accessibilityHint="Enter your email address to receive a verification code"
                 />
               </Animated.View>
 
@@ -52,11 +54,12 @@ export default function VerifyEmailScreen() {
                   setStep('verify');
                 }}
                 disabled={sendCode.isPending || !email}
+                accessibilityLabel="Send verification code button"
               >
                 {sendCode.isPending ? <ActivityIndicator color="#fff" /> : <Text variant="headline" color="onColor">Send code</Text>}
               </PressableScale>
 
-              <PressableScale style={[styles.btnGhost, { borderColor: t.separator }, continuousCurve]} onPress={() => router.back()}>
+              <PressableScale style={[styles.btnGhost, { borderColor: t.separator }, continuousCurve]} onPress={() => router.back()} accessibilityLabel="Back to login button">
                 <Text variant="headline" color="blue">Back to login</Text>
               </PressableScale>
             </>
@@ -74,6 +77,8 @@ export default function VerifyEmailScreen() {
                   style={[styles.field, { color: t.label, textAlign: 'center', letterSpacing: 8, fontSize: 24 }]}
                   placeholder="0000" placeholderTextColor={t.label3}
                   keyboardType="number-pad" maxLength={4} value={code} onChangeText={setCode}
+                  accessibilityLabel="Verification code input field"
+                  accessibilityHint="Enter the 4-digit verification code sent to your email"
                 />
               </Animated.View>
 
@@ -83,11 +88,12 @@ export default function VerifyEmailScreen() {
                 style={[styles.btn, { backgroundColor: t.blue }, continuousCurve]}
                 onPress={() => verify.mutate({ email, verification_code: code })}
                 disabled={verify.isPending || code.length !== 4}
+                accessibilityLabel="Verify email button"
               >
                 {verify.isPending ? <ActivityIndicator color="#fff" /> : <Text variant="headline" color="onColor">Verify</Text>}
               </PressableScale>
 
-              <PressableScale style={[styles.btnGhost, { borderColor: t.separator }, continuousCurve]} onPress={() => setStep('send')}>
+              <PressableScale style={[styles.btnGhost, { borderColor: t.separator }, continuousCurve]} onPress={() => setStep('send')} accessibilityLabel="Resend verification code button">
                 <Text variant="headline" color="blue">Resend code</Text>
               </PressableScale>
             </>

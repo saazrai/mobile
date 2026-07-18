@@ -38,6 +38,8 @@ export default function ForgotPasswordScreen() {
                   style={[styles.field, { color: t.label }]}
                   placeholder="Email" placeholderTextColor={t.label3}
                   autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail}
+                  accessibilityLabel="Email input field for password reset"
+                  accessibilityHint="Enter your email address to receive a password reset link"
                 />
               </Animated.View>
 
@@ -50,11 +52,12 @@ export default function ForgotPasswordScreen() {
                   setSent(true);
                 }}
                 disabled={forgot.isPending || !email}
+                accessibilityLabel="Send password reset link button"
               >
                 {forgot.isPending ? <ActivityIndicator color="#fff" /> : <Text variant="headline" color="onColor">Send reset link</Text>}
               </PressableScale>
 
-              <PressableScale style={[styles.btnGhost, { borderColor: t.separator }, continuousCurve]} onPress={() => router.back()}>
+              <PressableScale style={[styles.btnGhost, { borderColor: t.separator }, continuousCurve]} onPress={() => router.back()} accessibilityLabel="Back to login button">
                 <Text variant="headline" color="blue">Back to login</Text>
               </PressableScale>
             </>
@@ -67,7 +70,7 @@ export default function ForgotPasswordScreen() {
                 </Text>
               </Animated.View>
 
-              <PressableScale style={[styles.btnGhost, { borderColor: t.separator }, continuousCurve]} onPress={() => router.back()}>
+              <PressableScale style={[styles.btnGhost, { borderColor: t.separator }, continuousCurve]} onPress={() => router.back()} accessibilityLabel="Back to login button">
                 <Text variant="headline" color="blue">Back to login</Text>
               </PressableScale>
             </>
@@ -77,6 +80,7 @@ export default function ForgotPasswordScreen() {
     </SafeAreaView>
   );
 }
+
 
 const styles = StyleSheet.create({
   safe: { flex: 1 }, flex: { flex: 1 },

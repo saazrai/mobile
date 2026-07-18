@@ -65,7 +65,7 @@ export default function DomainQuizScreen() {
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: t.sysBg }]}>
       <View style={styles.nav}>
-        <PressableScale onPress={() => router.back()} hitSlop={12} style={styles.navBtn}>
+        <PressableScale onPress={() => router.back()} hitSlop={12} style={styles.navBtn} accessibilityLabel="Close domain test">
           <Icon name="x" size={20} color={t.blue} />
         </PressableScale>
         <Text variant="headline">Domain Test</Text>
@@ -79,7 +79,7 @@ export default function DomainQuizScreen() {
 
           <View style={styles.optionsList}>
             {question.options.map((option: string, i: number) => (
-              <PressableScale key={i} onPress={() => handleSelectOption(option)} style={[styles.optionRow, selectedOptions.includes(option) && { backgroundColor: `${t.blue}15` }]}>
+              <PressableScale key={i} onPress={() => handleSelectOption(option)} style={[styles.optionRow, selectedOptions.includes(option) && { backgroundColor: `${t.blue}15` }]} accessibilityLabel={`Option ${String.fromCharCode(65 + i)}: ${option}`}>
                 <View style={[styles.radio, { borderColor: selectedOptions.includes(option) ? t.blue : t.label3 }]} />
                 <Text variant="body" style={{ flex: 1 }}>{option}</Text>
               </PressableScale>
@@ -91,6 +91,7 @@ export default function DomainQuizScreen() {
               style={[styles.submitBtn, { backgroundColor: t.blue }, continuousCurve]}
               onPress={handleSubmitAnswer}
               disabled={!hasAnsweredCurrent || domainAnswer.isPending || submitDomain.isPending}
+              accessibilityLabel={isLastQuestion ? 'Submit all answers button' : 'Next question button'}
             >
               {isLastQuestion ? (
                 submitDomain.isPending ? <ActivityIndicator color="#fff" /> : (
@@ -110,7 +111,7 @@ export default function DomainQuizScreen() {
           <Text variant="headline" style={{ textAlign: 'center', marginTop: spacing.md }}>
             Score: {submitDomain.data?.correct_answers ?? 0} / {submitDomain.data?.total_questions ?? questions.length}
           </Text>
-          <PressableScale style={[styles.doneBtn, { backgroundColor: t.blue, marginTop: spacing.xl }, continuousCurve]} onPress={() => router.replace('/(tabs)')}>
+          <PressableScale style={[styles.doneBtn, { backgroundColor: t.blue, marginTop: spacing.xl }, continuousCurve]} onPress={() => router.replace('/(tabs)')} accessibilityLabel="Done button">
             <Text variant="headline" color="onColor">Done</Text>
           </PressableScale>
         </View>
@@ -118,6 +119,7 @@ export default function DomainQuizScreen() {
     </SafeAreaView>
   );
 }
+
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },

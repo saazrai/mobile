@@ -37,18 +37,24 @@ export default function RegisterScreen() {
               style={[styles.field, { color: t.label }]}
               placeholder="Full name" placeholderTextColor={t.label3}
               autoCapitalize="words" value={name} onChangeText={setName}
+              accessibilityLabel="Full name input field"
+              accessibilityHint="Enter your full name"
             />
             <View style={[styles.sep, { backgroundColor: t.separator }]} />
             <TextInput
               style={[styles.field, { color: t.label }]}
               placeholder="Email" placeholderTextColor={t.label3}
               autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail}
+              accessibilityLabel="Email input field"
+              accessibilityHint="Enter your email address"
             />
             <View style={[styles.sep, { backgroundColor: t.separator }]} />
             <TextInput
               style={[styles.field, { color: t.label }]}
               placeholder="Password" placeholderTextColor={t.label3}
               secureTextEntry value={password} onChangeText={setPassword}
+              accessibilityLabel="Password input field"
+              accessibilityHint="Enter your password"
             />
           </Animated.View>
 
@@ -58,13 +64,15 @@ export default function RegisterScreen() {
             style={[styles.btn, { backgroundColor: t.blue }, continuousCurve]}
             onPress={() => register.mutate({ name, email, password })}
             disabled={register.isPending || !name || !email || !password}
+            accessibilityLabel="Create account button"
+            accessibilityHint="Creates a new account with the provided details"
           >
             {register.isPending ? <ActivityIndicator color="#fff" /> : <Text variant="headline" color="onColor">Create account</Text>}
           </PressableScale>
 
           <View style={styles.footRow}>
             <Text variant="subhead" color="label2">Already have an account? </Text>
-            <PressableScale onPress={() => router.back()}>
+            <PressableScale onPress={() => router.back()} accessibilityLabel="Sign in link">
               <Text variant="subhead" color="blue">Sign in</Text>
             </PressableScale>
           </View>

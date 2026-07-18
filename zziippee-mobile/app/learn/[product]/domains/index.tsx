@@ -19,7 +19,7 @@ export default function DomainsScreen() {
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: t.sysBg }]}>
       <View style={styles.nav}>
-        <PressableScale onPress={() => router.back()} hitSlop={12} style={styles.navBtn}>
+        <PressableScale onPress={() => router.back()} hitSlop={12} style={styles.navBtn} accessibilityLabel="Close domains screen">
           <Icon name="x" size={20} color={t.blue} />
         </PressableScale>
         <Text variant="headline">Domains</Text>
@@ -46,7 +46,7 @@ function DomainList({ productSlug, onSelect, t }: { productSlug: string; onSelec
   return (
     <Animated.View entering={FadeInDown.duration(500).springify().damping(18)} style={styles.list}>
       {domains.map((domain: any, i: number) => (
-        <PressableScale key={domain.id || i} onPress={() => onSelect(domain.id)} style={[styles.domainCard, { backgroundColor: t.cell }, continuousCurve]}>
+        <PressableScale key={domain.id || i} onPress={() => onSelect(domain.id)} style={[styles.domainCard, { backgroundColor: t.cell }, continuousCurve]} accessibilityLabel={`Domain ${domain.name}: ${domain.questions_count ?? 0} questions`}>
           <View style={{ flex: 1 }}>
             <Text variant="headline" numberOfLines={2}>{domain.name}</Text>
             <Text variant="footnote" color="label2" style={{ marginTop: spacing.xs }}>
@@ -64,7 +64,7 @@ function DomainDetail({ domainId, onBack, t, router }: { domainId: string; onBac
   // Placeholder for domain detail view — would show objectives and start practice button
   return (
     <View style={styles.detail}>
-      <PressableScale onPress={onBack} hitSlop={12} style={styles.navBtn}>
+      <PressableScale onPress={onBack} hitSlop={12} style={styles.navBtn} accessibilityLabel="Back to domains list">
         <Icon name="x" size={20} color={t.blue} />
       </PressableScale>
       <Text variant="headline">Domain {domainId}</Text>
@@ -74,6 +74,7 @@ function DomainDetail({ domainId, onBack, t, router }: { domainId: string; onBac
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
