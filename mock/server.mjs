@@ -802,9 +802,31 @@ const server = createServer((req, res) => {
       return ok(res, ACCOUNT_PREFS);
     }
 
-    // home / courses
-    if (path === '/dashboard') return ok(res, { continue: { assessment_id: firstOrNewSession(), label: '1.4 Professional ethics', course: 'ISC2 CC', progress_percent: 44 }, courses: COURSES });
-    if (path === '/enrollments') return ok(res, COURSES);
+    // Projects the COURSES fixture into the real Enrollment shape (id, course, product,
+    // enrolled_at) — mastery/art/vendor/expires are NOT part of the real API response.
+    function toEnrollment(c, i) {
+      return {
+        id: i + 1,
+        course: { name: c.name, code: c.code },
+        product: { name: c.name, slug: c.slug },
+        enrolled_at: '2026-01-01T00:00:00Z',
+      };
+    }
+
+    // home / courses — shape matches the real CurriculumController::dashboard/enrollments
+    // response (docs/09 §9.2, docs/11 §11.1's Option B): no continue/mastery/art/vendor —
+    // those are either fictional (continue) or client-side-only presentation (art/vendor).
+    if (path === '/dashboard') {
+      return ok(res, {
+        enrollments: COURSES.map(toEnrollment),
+        stats: { enrolledCourses: COURSES.length, examsCompleted: 2, bestScore: 82, averageScore: 71 },
+        recentResults: [
+          { id: 501, type: 'objective', label: 'Professional ethics', product: 'ISC2 CC', score: 80, correct: 4, total: 5, completed_at: '2026-07-10T09:00:00Z' },
+          { id: 500, type: 'exam', label: 'Practice Exam', product: 'Security+', score: 71, correct: 62, total: 87, completed_at: '2026-07-02T14:30:00Z' },
+        ],
+      });
+    }
+    if (path === '/enrollments') return ok(res, COURSES.map(toEnrollment));
 
     // course home: /learn/:product
     if (seg[0] === 'learn' && seg.length === 2) {
