@@ -80,6 +80,20 @@ export function useForgotPassword() {
   });
 }
 
+export interface ResetPasswordBody {
+  email: string;
+  token: string;
+  password: string;
+  password_confirmation: string;
+}
+
+export function useResetPassword() {
+  return useMutation({
+    mutationFn: (body: ResetPasswordBody) =>
+      postData<void>('/auth/reset-password', body),
+  });
+}
+
 export interface AccountPreferences {
   theme?: 'light' | 'dark';
   font_size?: 'small' | 'medium' | 'large';

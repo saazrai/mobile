@@ -7,7 +7,7 @@ import { ExpoConfig } from 'expo/config';
 const config: ExpoConfig = {
   name: 'SecureStart',
   slug: 'zziippee-mobile',
-  scheme: 'zziippee', // deep links: zziippee://verify, zziippee://reset, checkout return
+  scheme: 'zziippee', // deep links: zziippee://verify, zziippee://reset-password, checkout return
   version: '0.1.0',
   orientation: 'portrait',
   userInterfaceStyle: 'automatic', // respect system light/dark

@@ -142,6 +142,27 @@ paths:
       responses:
         '200': { $ref: '#/components/responses/Message' }
 
+  /auth/reset-password:
+    post:
+      tags: [Auth]
+      summary: Reset password with token from email link
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, token, password, password_confirmation]
+              properties:
+                email: { type: string, format: email }
+                token: { type: string }
+                password: { type: string, minLength: 8 }
+                password_confirmation: { type: string }
+      responses:
+        '200': { $ref: '#/components/responses/Message' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
   /auth/me:
     get:
       tags: [Auth]

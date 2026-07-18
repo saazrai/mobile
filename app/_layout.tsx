@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
+import * as Linking from 'expo-linking';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -25,6 +26,25 @@ function AuthGate() {
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  // Cold-start deep link: if the app was opened via zziippee://reset?... handle it.
+  useEffect(() => {
+    Linking.getInitialURL().then((url) => {
+      if (url && url.includes('/reset')) {
+        router.replace(url);
+      }
+    });
+  }, []);
+
+  // Live deep link: while the app is running, handle incoming URLs.
+  useEffect(() => {
+    const sub = Linking.addEventListener('url', ({ url }) => {
+      if (url.includes('/reset')) {
+        router.replace(url);
+      }
+    });
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     if (authed === null) return; // still checking cold-start token

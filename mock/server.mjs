@@ -771,6 +771,16 @@ const server = createServer((req, res) => {
     if (path === '/auth/login' || path === '/auth/register' || path === '/auth/social/google') {
       return ok(res, { token: 'mock-token-' + randomUUID(), user: { id: 1, name: 'Aarav Rai', email: json.email ?? 'saaz.rai@gmail.com', email_verified: true, roles: ['learner'] }, enrollments: COURSES }, path.endsWith('register') ? 201 : 200);
     }
+    // auth — forgot / reset password
+    if (path === '/auth/forgot-password') return ok(res, { message: 'Password reset link sent.' }, 202);
+    if (path === '/auth/reset-password') {
+      const { email, token, password, password_confirmation } = json;
+      if (!email || !token || !password) return fail(res, 422, { errors: { message: ['All fields are required.'] } });
+      if (password !== password_confirmation) return fail(res, 422, { errors: { password: ['Passwords do not match.'] } });
+      if (password.length < 8) return fail(res, 422, { errors: { password: ['Password must be at least 8 characters.'] } });
+      return ok(res, { message: 'Password updated successfully.' });
+    }
+
     if (path === '/auth/me') return ok(res, { id: 1, name: 'Aarav Rai', email: 'saaz.rai@gmail.com', email_verified: true, roles: ['learner'] });
     if (path === '/auth/logout') return ok(res, { message: 'Signed out.' });
 

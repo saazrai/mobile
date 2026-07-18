@@ -33,7 +33,8 @@ Conventions:
 | POST | `/auth/social/google` | `{id_token,device_name}` → `{token,user}` | **New code required** — see note below |
 | POST | `/auth/email/send-code` | `{email}` (throttled) | `EmailVerificationController@sendVerificationCodeToEmail` |
 | POST | `/auth/email/verify-code` | `{email,code}` | `EmailVerificationController@verifyCode` |
-| POST | `/auth/forgot-password` | `{email}` | `PasswordResetLinkController` |
+| POST | `/auth/forgot-password` | `{email}` → `202` | `PasswordResetLinkController` (sends signed-link email; deep link: `zziippee://reset?...`) |
+| POST | `/auth/reset-password` | `{email, token, password, password_confirmation}` → `200` | `PasswordResetController` (Laravel standard) |
 | GET | `/auth/me` | → current `{user, roles, verified}` | `auth()->user()` |
 | POST | `/auth/logout` | revokes current token | Sanctum `currentAccessToken()->delete()` |
 | DELETE | `/account` | GDPR delete (mirror web) | `PrivacyController@deleteAccount` |
