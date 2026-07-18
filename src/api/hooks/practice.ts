@@ -199,11 +199,47 @@ export interface AssessmentReview {
   questions: ReviewQuestion[];
 }
 
+/** The production review endpoint is flat; older/mock responses nest `assessment`. */
+function normalizeReview(payload: any): AssessmentReview {
+  if (payload.assessment) {
+    return {
+      ...payload,
+      questions: (payload.questions ?? []).map(normalizeReviewQuestion),
+    };
+  }
+
+  return {
+    assessment: {
+      id: payload.assessment_id,
+      status: payload.status,
+      score: Number(payload.score ?? 0),
+      total_questions: Number(payload.total_questions ?? 0),
+      correct_answers: Number(payload.correct_answers ?? 0),
+      completed_at: payload.completed_at ?? null,
+      mastery_label: payload.mastery_label ?? null,
+      difficulty_history: payload.difficulty_history ?? [],
+      result_history: payload.result_history ?? [],
+    },
+    questions: (payload.questions ?? []).map(normalizeReviewQuestion),
+  };
+}
+
+function normalizeReviewQuestion(question: any): ReviewQuestion {
+  return {
+    ...question,
+    options: question.options ?? [],
+    correct_options: question.correct_options ?? [],
+    justifications: question.justifications ?? [],
+    selected_options: question.selected_options ?? [],
+    is_correct: question.is_correct ?? null,
+  };
+}
+
 /** Post-quiz review — score, mastery, and per-question detail (docs/03 §review). */
 export function useReview(assessmentId: string | undefined, productSlug: string | undefined) {
   return useQuery({
     queryKey: ['assessment-review', assessmentId],
-    queryFn: () => getData<AssessmentReview>(`/learn/${productSlug}/assessments/${assessmentId}/review`),
+    queryFn: async () => normalizeReview(await getData(`/learn/${productSlug}/assessments/${assessmentId}/review`)),
     enabled: !!assessmentId && !!productSlug,
     staleTime: Infinity, // a completed assessment's review never changes
   });

@@ -56,6 +56,10 @@ export default function QuizRunner() {
   };
 
   const answeredCount = state?.progress?.answered ?? 0;
+  // The answer response advances server progress immediately, but the current
+  // question remains visible while its feedback is being reviewed. Keep the
+  // counter on that displayed question until the user moves to the next one.
+  const displayedAnsweredCount = revealed ? Math.max(0, answeredCount - 1) : answeredCount;
 
   const onSubmit = async () => {
     if (!current) return;
@@ -93,10 +97,10 @@ export default function QuizRunner() {
         </PressableScale>
         <Text variant="headline">Practice</Text>
         <ProgressRing
-          progress={answeredCount / Math.max(1, state?.progress?.estimatedTotal ?? 1)}
+          progress={displayedAnsweredCount / Math.max(1, state?.progress?.estimatedTotal ?? 1)}
           size={44} strokeWidth={3} color={t.blue} track={t.fill}
         >
-          <Text variant="caption" style={{ fontWeight: '700' }}>{answeredCount + 1}</Text>
+          <Text variant="caption" style={{ fontWeight: '700' }}>{displayedAnsweredCount + 1}</Text>
         </ProgressRing>
       </View>
 
