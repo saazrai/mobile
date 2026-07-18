@@ -4,9 +4,8 @@ Planning and spec docs for the `zziippee-mobile` React Native app, which
 consumes the Laravel backend at (sibling checkout) `../zziippee` — a
 **separate git repo**, not a subdirectory of this one. If you're
 implementing backend work from these specs, open a session rooted at that
-repo directly; if you're implementing mobile work, use `../zziippee-mobile`.
-See `../zziippee-mobile/TASKS-MOBILE.md` for the phased build plan tying
-everything below together.
+repo directly; if you're implementing mobile work, use this directory.
+See `TASKS-MOBILE.md` for the phased build plan tying everything below together.
 
 ## Reading order
 
@@ -25,7 +24,7 @@ everything below together.
 8. [09-backend-integration-risk-scan.md](09-backend-integration-risk-scan.md) — verification pass 1 (session-state risk only) — **read its 2026-07-18 update note before trusting the "verified-clean" ratings**
 
 **Per-domain specs — the actual build contract, each verified against real backend code:**
-9. [08-exam-spec.md](08-exam-spec.md) — Exam simulations. Has its own task file: `../zziippee-mobile/TASKS-EXAM.md`. **Prototype built** (mock-only).
+9. [08-exam-spec.md](08-exam-spec.md) — Exam simulations. Has its own task file: `TASKS-EXAM.md`. **Prototype built** (mock-only).
 10. [10-auth-account-spec.md](10-auth-account-spec.md) — Login/Register/Verify/Forgot-password, Profile/Settings account actions. Not started.
 11. [11-home-courses-progress-spec.md](11-home-courses-progress-spec.md) — Home/Dashboard, My Courses, Course Home, Progress. Not started; flags that several assumed features don't exist backend-side.
 12. [12-practice-spec.md](12-practice-spec.md) — Adaptive objective quizzes + domain tests. **Prototype partially built** (mock-only) — has a known backend security finding blocking real wiring.
@@ -49,6 +48,5 @@ the end listing exactly which claims in 01–07 to distrust and why).
 - **Flashcards and Videos have no backend content model at all** (doc 13
   §13.1) — don't schedule mobile UI work here until that changes.
 
-`TASKS-MOBILE.md` (in the `zziippee-mobile` repo) sequences all of this into
-phases and tags each task `[BACKEND]` (zziippee repo) or `[MOBILE]`
-(zziippee-mobile repo).
+`TASKS-MOBILE.md` sequences all of this into phases and tags each task
+`[BACKEND]` (zziippee repo) or `[MOBILE]` (this repo).

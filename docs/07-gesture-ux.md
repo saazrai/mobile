@@ -77,7 +77,7 @@ current item*. Learned once, it transfers everywhere.
 | Haptics | **expo-haptics** |
 | Media | **expo-video** for the video reel |
 
-All added to `zziippee-mobile/package.json`.
+All added to `package.json` in this repo.
 
 ## 7.6 Accessibility (gestures must not exclude anyone)
 

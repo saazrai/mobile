@@ -21,7 +21,7 @@
 ## 4.2 Project structure
 
 ```
-zziippee-mobile/
+.
   app/                          # Expo Router routes (screens)
     (auth)/
       login.tsx  register.tsx  verify-email.tsx  forgot-password.tsx

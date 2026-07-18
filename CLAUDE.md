@@ -5,14 +5,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## What this is
 
 React Native + Expo (TypeScript, strict) client for "SecureStart" — zziippee's
-certification exam-prep app. It's a subdirectory of a larger git repo rooted one
-level up (`../`); that parent also holds `../docs/` (architecture, API contract,
-UI/UX spec, exam spec), `../design/` (HTML mockup), and `../backend-stubs/` (a
-drop-in Laravel API stub for the backend, which does not exist yet). This repo
-currently runs entirely against the bundled mock server, not a real backend.
+certification exam-prep app. The repo root holds the app code plus sibling
+directories: `docs/` (architecture, API contract, UI/UX spec, exam spec),
+`design/` (HTML mockup), and `backend-stubs/` (a drop-in Laravel API stub for
+the backend, which does not exist yet). This repo currently runs entirely
+against the bundled mock server, not a real backend.
 
-Before adding any API-backed feature, check `../docs/03-api-contract.md` (general
-contract) and `../docs/08-exam-spec.md` (exam module, verified against the real
+Before adding any API-backed feature, check `docs/03-api-contract.md` (general
+contract) and `docs/08-exam-spec.md` (exam module, verified against the real
 zziippee backend's implementation) — they are the source of truth for endpoint
 shapes, and `mock/server.mjs` is meant to track them.
 
