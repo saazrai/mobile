@@ -26,13 +26,12 @@ and consumes the API in [`../docs/openapi/mobile-v1.yaml`](../docs/openapi/mobil
 ```bash
 npm install
 cp .env.example .env            # set API_BASE_URL + Google client ids
-npm run api:mock                # (optional) mock server from the OpenAPI spec
 npm run api:types               # generate src/api/generated/schema.ts from OpenAPI
 npm start                       # then press i (iOS) or a (Android)
 ```
 
-Point `API_BASE_URL` at the mock server (`npm run api:mock`) to build screens
-before the real `/api/v1` exists — this is the contract-first flow from the roadmap.
+`API_BASE_URL` must point at a real zziippee `/api/v1` backend — dev, UAT, or
+prod (see `.env.example`); there is no bundled mock.
 
 ## Structure
 
