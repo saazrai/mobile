@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { View, ScrollView, StyleSheet, ActivityIndicator, useColorScheme } from 'react-native';
+import { useRef, useState } from 'react';
+import { View, ScrollView, StyleSheet, ActivityIndicator, Alert, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -9,7 +9,9 @@ import { Text } from '../../../src/components/Text';
 import { Icon } from '../../../src/components/Icon';
 import { PressableScale } from '../../../src/components/PressableScale';
 import { ProgressRing } from '../../../src/components/ProgressRing';
-import { useAssessment, useAnswer, type Question, type AnswerResult } from '../../../src/api/hooks/practice';
+import { ApiRequestError } from '../../../src/api/client';
+import { useAssessment, useAnswer, usePauseAssessment, type Question, type AnswerResult } from '../../../src/api/hooks/practice';
+import { computeElapsedSeconds } from '../../../src/utils/practiceResume';
 import { OptionContent } from '../../../src/components/OptionContent';
 import { questionMarkdownStyle } from '../../../src/components/markdownStyles';
 import { scrollableMarkdownRules } from '../../../src/components/markdownRules';
@@ -23,6 +25,8 @@ export default function QuizRunner() {
   const { id, product, domain } = useLocalSearchParams<{ id: string; product?: string; domain?: string }>();
   const { data: state, isLoading } = useAssessment(id, product);
   const answer = useAnswer(id!, product!);
+  const pauseMutation = usePauseAssessment(id!, product!);
+  const startedAtRef = useRef(Date.now());
 
   const [selected, setSelected] = useState<string[]>([]);
   const [result, setResult] = useState<AnswerResult | null>(null);
@@ -78,6 +82,25 @@ export default function QuizRunner() {
     setQuestion(result.next_question); setSelected([]); setResult(null);
   };
 
+  function confirmPause() {
+    Alert.alert(
+      'Pause Practice?',
+      'Your progress is saved — you can continue from where you left off.',
+      [{ text: 'Cancel', style: 'cancel' }, { text: 'Pause', style: 'destructive', onPress: doPause }],
+    );
+  }
+
+  async function doPause() {
+    try {
+      const elapsedSeconds = computeElapsedSeconds(state?.elapsed_seconds, startedAtRef.current, Date.now());
+      await pauseMutation.mutateAsync(elapsedSeconds);
+      router.back();
+    } catch (e) {
+      const err = e as ApiRequestError;
+      Alert.alert('Something went wrong', err?.message || 'Please try again.');
+    }
+  }
+
   const correctOpts = result?.correct_options ?? [];
   const optState = (opt: string): 'idle' | 'sel' | 'right' | 'wrong' => {
     if (!revealed) return selected.includes(opt) ? 'sel' : 'idle';
@@ -96,7 +119,7 @@ export default function QuizRunner() {
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: t.sysBg }]}>
       <View style={styles.nav}>
-        <PressableScale onPress={() => router.back()} hitSlop={12} style={[styles.navBtn, { backgroundColor: t.fill }]}>
+        <PressableScale onPress={confirmPause} disabled={pauseMutation.isPending} hitSlop={12} style={[styles.navBtn, { backgroundColor: t.fill }]}>
           <Icon name="x" size={20} color={t.blue} />
         </PressableScale>
         <Text variant="headline">Practice</Text>
