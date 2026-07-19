@@ -90,7 +90,7 @@ export interface ObjectiveLatestAssessment {
   status: 'in_progress' | 'paused' | 'completed';
   score: number;
   total_questions: number;
-  responses: { id: number; questionable_id: number; is_correct: boolean }[];
+  responses?: { id: number; questionable_id: number; is_correct: boolean }[];
 }
 export interface ObjectivesResponse {
   domains: ObjectiveDomain[];

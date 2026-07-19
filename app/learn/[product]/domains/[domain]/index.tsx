@@ -106,7 +106,7 @@ export default function ObjectiveScreen() {
                         color={t.orange}
                         track={t.fill}
                       >
-                        <Icon name="play" size={12} color="#fff" filled />
+                        <Icon name="play" size={12} color={t.orange} filled />
                       </ProgressRing>
                     ) : (
                       <View style={[styles.playBtn, { backgroundColor: t.blue }]}>
