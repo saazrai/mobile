@@ -9,14 +9,14 @@ It is NOT a technical inventory — it describes user-facing capabilities only.
 
 | Feature | Status | Notes |
 |---------|:------:|-------|
-| Sign in with email + password | ✅ | Via mock server; real backend needs Sanctum scaffold |
+| Sign in with email + password | ✅ | Standard email/password sign-in flow |
 | Create account | ✅ | Name, email, password → verification code sent to email |
 | Email verification (4-digit code) | ✅ | Send → enter code flow; 10-min expiry, resend available |
 | Sign in with Google | ⚠️ Stub | Button shows "Coming soon" — SDK API mismatched this build version |
 | Forgot password | ✅ | Enter email → `POST /auth/forgot-password` (202); shows success state on the same screen |
 | Reset password via deep link | ✅ | Tapping `zziippee://reset?...` from email opens a screen that collects new password + confirmation, POSTs to `/auth/reset-password`; invalid/expired links show an error with "Back to login" |
 | Dark mode toggle | ✅ | Local switch on profile screen; server sync is a future improvement |
-| Export my data (GDPR) | ✅ | Calls `GET /account/export` — returns JSON dump from mock |
+| Export my data (GDPR) | ✅ | Calls `GET /account/export` — returns a JSON dump of account data |
 | Anonymize account | ✅ | Replaces "Delete Account" copy per spec; clears session locally |
 
 ---
@@ -42,7 +42,7 @@ It is NOT a technical inventory — it describes user-facing capabilities only.
 | Domain test (no-reveal) | ✅ | Linear blind runner — no per-question feedback until you submit the whole test |
 | Browse domains by course | ✅ | Lists domains with question count; detail view is a placeholder ("coming soon") |
 
-**Not available:** Performance-Based Questions (PBQs). All questions are multiple-choice (single or multi-select). The mock and real backend both serve MCQs only.
+**Not available:** Performance-Based Questions (PBQs). All questions are multiple-choice (single or multi-select) — the real backend serves MCQs only.
 
 ---
 
@@ -100,7 +100,7 @@ It is NOT a technical inventory — it describes user-facing capabilities only.
 
 - **Google Sign-In** — stub only; SDK version mismatch with this build
 - **Videos feed** — deferred pending backend content model
-- **PBQs / simulation questions** — not supported by either mock or real backend
+- **PBQs / simulation questions** — not supported by the real backend
 - **Streak / continue-card for exams / weakest-objective suggestions** — v1 cut per spec §11.1 Option B (backend doesn't produce these)
 - **Domain detail sub-view** (objectives list + "start practice" from within a domain card) — placeholder in code
 - **Per-block completion tracking on study notes** — backend must add HTML sanitization + eager-loaded completion state first

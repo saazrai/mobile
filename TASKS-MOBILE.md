@@ -18,31 +18,29 @@ not this repo's.
 
 **Backend URL is already fully configurable — no code changes needed to
 switch it.** `API_BASE_URL` (`.env`) → `app.config.ts`'s `extra.apiBaseUrl` →
-read in `src/api/client.ts`. Point it at the bundled mock
-(`http://localhost:4010/api/v1`, the default), the real backend's dev/UAT
-URL, or production, per environment — see `.env.example`. **Cutting over a
-domain from mock to real backend is a config change (or an EAS per-channel
-secret), not a mobile code change**, as long as the real backend matches the
-spec the mock was built from. If a real endpoint's response shape doesn't
-match its spec doc, that's a backend bug to report, not something to work
-around client-side.
+read in `src/api/client.ts`. Point it at the real backend's dev, UAT, or
+production URL per environment — see `.env.example`. **Switching
+environments is a config change (or an EAS per-channel secret), not a
+mobile code change.** If a real endpoint's response shape doesn't match its
+spec doc, that's a backend bug to report, not something to work around
+client-side.
 
 ## Status
 
-- **Exam**: mobile prototype built and verified against the mock (doc 08
-  is the contract) — see [TASKS-EXAM.md](TASKS-EXAM.md). Before pointing
-  this domain at the real backend, confirm the state-persistence rework in
-  doc 08 §8.1/§8.4 has actually landed there — if the real backend still
-  stores live-attempt state in the PHP session, a bearer-token client
-  can't use it regardless of URL config.
-- **Practice**: mobile prototype partially built against the mock
+- **Exam**: mobile prototype built (doc 08 is the contract) — see
+  [TASKS-EXAM.md](TASKS-EXAM.md). Before pointing this domain at the real
+  backend, confirm the state-persistence rework in doc 08 §8.1/§8.4 has
+  actually landed there — if the real backend still stores live-attempt
+  state in the PHP session, a bearer-token client can't use it regardless
+  of URL config.
+- **Practice**: mobile prototype partially built
   (`app/assessment/[id]/quiz.tsx`, `review.tsx`, `src/api/hooks/practice.ts`).
   Before cutover, confirm doc 12 §12.1's fix (answer-key leak in the
   current-question payload) has landed — this is a correctness/security
   property of the contract itself, not a timing issue.
 - **Everything else** (Auth, Home/Courses/Progress, Study Content): mobile
   screens not started. Build against the documented contract now (docs
-  10/11/13), pointed at the mock, same as Exam/Practice were.
+  10/11/13) against a real backend environment, same as Exam/Practice were.
 - **Study Content caveat**: Study Notes is buildable against a spec:
   Flashcards/Videos have no backend content model *by design of the current
   spec* (doc 13 §13.1) — if the backend track has since added one, confirm
@@ -76,8 +74,6 @@ around client-side.
 - **1.5** `[MOBILE]` Once the backend track confirms this domain is live:
   point `.env`'s `API_BASE_URL` at it for local testing, verify each screen
   against real responses, then update the relevant EAS channel secret.
-  Leave `mock/server.mjs`'s routes for this domain in place until then —
-  they're still useful for offline dev even after cutover.
 
 ## Phase 2 — Practice (doc 12) — "the value core"
 
@@ -104,9 +100,9 @@ around client-side.
 ## Phase 3 — Exam (doc 08) — see TASKS-EXAM.md for the screen-level breakdown
 
 - **3.1** `[MOBILE]` Exam prototype (list/runner/results/review) is built
-  and tested against the mock. No further mobile work needed until cutover,
-  beyond TASKS-EXAM.md's task 9 follow-up (full results analytics) if
-  product wants it.
+  and tested. No further mobile work needed until cutover, beyond
+  TASKS-EXAM.md's task 9 follow-up (full results analytics) if product
+  wants it.
 - **3.2** `[BACKEND, tracked elsewhere]` State-persistence rework (doc 08
   §8.1/§8.4) — the largest single backend task in the whole plan. Full
   results analytics (§8.4, TASKS-EXAM.md task 9) if wanted.
@@ -142,10 +138,11 @@ around client-side.
   built that support (doc 11 §11.3 — not present as of that spec).
 - **5.2** `[MOBILE]` Offline states, accessibility labels, dark-mode QA
   across all screens, Maestro E2E flows (doc 06 §6.5's definition of done).
-- **5.3** `[MOBILE]` Once every domain above has cut over to the real
-  backend and been verified, retire `mock/server.mjs` and the `npm run mock`
-  script. Not before — it's still the fastest way to develop/demo any
-  not-yet-cut-over screen.
+- **5.3** `[MOBILE]` **Done, 2026-07-19.** `mock/server.mjs` and the
+  `npm run mock`/`npm run api:mock` scripts have been retired — the app now
+  only runs against a real backend (dev/UAT/prod, per `.env`). Any
+  not-yet-cut-over screen must be developed/demoed directly against a real
+  backend environment instead.
 - **5.4** Store submission prep (doc 04 §4.8) — EAS build/submit,
   TestFlight/Play internal beta.
 - **5.5** `[BACKEND, tracked elsewhere]` Pest parity tests per wrapped
