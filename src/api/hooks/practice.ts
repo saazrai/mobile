@@ -36,9 +36,10 @@ export interface AnswerResult {
 }
 
 /**
- * The stateful mock exposes `progress`, while the production controller returns
- * adaptive-progress fields separately (and uses snake_case for resume data).
- * Normalize both at the API boundary so runners only ever consume one shape.
+ * Some endpoints return `progress` directly, while others (the production
+ * controller's adaptive-progress fields) return it separately and use
+ * snake_case for resume data. Normalize both at the API boundary so runners
+ * only ever consume one shape.
  */
 function normalizeProgress(payload: any): AdaptiveProgress {
   const adaptive = payload.adaptive_progress ?? payload.progress ?? {};
@@ -199,7 +200,7 @@ export interface AssessmentReview {
   questions: ReviewQuestion[];
 }
 
-/** The production review endpoint is flat; older/mock responses nest `assessment`. */
+/** The production review endpoint is flat; some responses nest `assessment` instead. */
 function normalizeReview(payload: any): AssessmentReview {
   if (payload.assessment) {
     return {
