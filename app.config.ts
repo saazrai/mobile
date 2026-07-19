@@ -17,8 +17,8 @@ const config: ExpoConfig = {
   plugins: ['expo-router', 'expo-secure-store'],
   extra: {
     // Per-channel via EAS: production → zziippee.com, preview → laravel.cloud.
-    // Default targets the bundled mock (npm run mock) so a fresh clone runs offline.
-    apiBaseUrl: process.env.API_BASE_URL ?? 'http://localhost:4010/api/v1',
+    // Default targets UAT so a fresh clone works with no local backend setup.
+    apiBaseUrl: process.env.API_BASE_URL ?? 'https://zziippee.laravel.cloud/api/v1',
     googleWebClientId: process.env.GOOGLE_WEB_CLIENT_ID ?? '',
     googleIosClientId: process.env.GOOGLE_IOS_CLIENT_ID ?? '',
     sentryDsn: process.env.SENTRY_DSN ?? '',
