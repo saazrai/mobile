@@ -113,15 +113,15 @@ baked into how the mobile app currently renders content
 (`react-native-markdown-display`, trusting the input). If the real content
 source allows arbitrary HTML, mobile needs either server-side sanitization
 added before the API wrap, or its own sanitization step before rendering —
-rendering unsanitized HTML as trusted markdown is a real XSS-shaped risk once
-this is wired to real content instead of the mock's fixtures.
+rendering unsanitized HTML as trusted markdown is a real XSS-shaped risk
+against real backend content.
 
 ## 9.6 What this changes about next steps
 
 - No domain needs an Exam-style forensic deep-dive — the hidden-state risk
   that justified that level of effort for Exam isn't present elsewhere.
 - Two concrete, scoped gaps need real backend work before their mobile
-  screens can go past the mock: **Google `id_token` verification** (§9.1) and
+  screens are safe against real data: **Google `id_token` verification** (§9.1) and
   **study-notes sanitization** (§9.5). Both are far smaller than Exam's
   session-vs-stateless gap.
 - Doc 03's `/api/v1` sketch can be trusted as a *routing/shape* plan for Auth,

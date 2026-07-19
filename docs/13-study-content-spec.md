@@ -24,8 +24,8 @@ migration, admin authoring/import path, and only then an API. Doc 07's
 swipe-to-grade deck and Reels-style video feed are real, well-specified
 mobile UX (§7.3), but there's nothing on the backend to feed them yet. Don't
 schedule mobile work on these ahead of the backend content model existing —
-there's no way to build against real data, and building against invented
-mock shapes risks the same kind of contract drift Exam had.
+there's no way to build against real data, and building against an invented
+shape risks the same kind of contract drift Exam had.
 
 **Study Notes has real content** and is buildable now — see below.
 
@@ -116,7 +116,7 @@ Supersedes doc 03 §3.6.
 - **Flashcards' swipe-to-grade deck and Videos' Reels feed (doc 07 §7.3) are
   fully speced UX with no backend to build against.** Don't start mobile
   implementation here until product/backend decides whether and how to build
-  the underlying content model — building against an invented mock shape
+  the underlying content model — building against an invented shape
   risks the exact kind of contract drift Exam had, except worse, since here
   there's no existing behavior at all to eventually reconcile against.
 
