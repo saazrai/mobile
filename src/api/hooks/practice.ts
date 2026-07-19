@@ -90,6 +90,7 @@ export interface ObjectiveLatestAssessment {
   status: 'in_progress' | 'paused' | 'completed';
   score: number;
   total_questions: number;
+  responses: { id: number; questionable_id: number; is_correct: boolean }[];
 }
 export interface ObjectivesResponse {
   domains: ObjectiveDomain[];
@@ -212,9 +213,17 @@ export function useAnswer(assessmentId: string, productSlug: string) {
 }
 
 export function usePauseAssessment(assessmentId: string, productSlug: string) {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: (elapsedSeconds: number) =>
       postData(`/learn/${productSlug}/assessments/${assessmentId}/pause`, { elapsed_seconds: elapsedSeconds }),
+    onSuccess: () => {
+      // Lets the Objectives screen (and Home's Continue card, once it's
+      // backed by real data) show Continue immediately on the next render,
+      // without a manual pull-to-refresh.
+      qc.invalidateQueries({ queryKey: ['objectives', productSlug] });
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+    },
   });
 }
 
