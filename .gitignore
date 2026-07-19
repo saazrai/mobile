@@ -7,3 +7,6 @@ web-build/
 src/api/generated/
 ios/
 android/
+
+# superpowers brainstorming companion
+.superpowers/
