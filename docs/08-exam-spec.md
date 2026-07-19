@@ -1,11 +1,13 @@
 # 8 · Exam Simulation Spec
 
-**Status:** A client-side prototype now exists in `zziippee-mobile` — mock
-`/exams/*` routes (`mock/server.mjs`), API hooks (`src/api/hooks/exam.ts`), and
-screens (`app/learn/[product]/exams/index.tsx`, `app/exam/[id]/runner.tsx`,
-`results.tsx`, `review.tsx`) implementing the design below against the mock
-server only. **No real backend work has started** — the session-vs-stateless
-gap in §8.1 is still open, and the prototype's `/results` implements only the
+**Status:** A client-side prototype exists in `zziippee-mobile` — `/exams/*`
+API hooks (`src/api/hooks/exam.ts`) and screens
+(`app/learn/[product]/exams/index.tsx`, `app/exam/[id]/runner.tsx`,
+`results.tsx`, `review.tsx`) implementing the design below. It was originally
+built and run against an in-memory stand-in server, since retired — the app
+now only runs against a real backend, and this module cannot function against
+one yet. **No real backend work has started** — the session-vs-stateless gap
+in §8.1 is still open, and the prototype's `/results` implements only the
 domain-breakdown portion of §8.4/§8.7's contract (see §8.10 for the exact
 delta). This doc supersedes the Exam fragments scattered across doc 2 §2.5,
 doc 3 §3.5, doc 4 §4.6, and doc 5 screens L/M/N, which sketch a *stateless
@@ -331,33 +333,32 @@ under an active attempt (`submit-answer`, `pause`, `heartbeat`, `end`) is a
 | 06 §6.1/§6.2 | "Exam sim API (timer/heartbeat) : 2w" | Needs re-estimation once the session-vs-stateless gap (§8.1) is scoped with backend |
 | backend-stubs `routes/api_v1.php:67-70` | Exam routes commented out, "mirror ExamsController" | Correct that they're unbuilt; the mirror instruction needs to point at §8.4 of this doc, not the web controller directly |
 
-## 8.10 Prototype status (mock-only — no real backend exists)
+## 8.10 Prototype status (no real backend exists yet)
 
-A full client-side implementation of §8.4–§8.7 runs against a mock, not the
-real backend described in §8.1:
+A full client-side implementation of §8.4–§8.7 was built and run against an
+in-memory stand-in server, not the real backend described in §8.1. That
+stand-in has since been retired along with the rest of the app's mock
+tooling — this module currently has nothing to run against locally until the
+real backend implements it:
 
-- `mock/server.mjs` — in-memory session state machine for `/exams/*`, covering
-  start/resume/GET-state/submit-answer (forward + review-index edit)/pause/
-  heartbeat/end/results/review, with `state_version` optimistic locking and
-  idempotency-key deduplication matching §8.6.
 - `src/api/hooks/exam.ts` — the TanStack Query hook surface from §8.8.
 - `app/learn/[product]/exams/index.tsx`, `app/exam/[id]/runner.tsx`,
   `results.tsx`, `review.tsx` — Screens L/M/N + Review from §8.7, including the
   review-before-submit gate and locked vs. navigable policy branching.
 
 **Known gap — this does *not* mean the real backend can be built by mirroring
-the prototype's `/results` shape.** The mock's results response implements
-only `summary.domains.performance` (per-domain accuracy bars). It does **not**
+the retired stand-in's `/results` shape.** Its results response implemented
+only `summary.domains.performance` (per-domain accuracy bars). It did **not**
 implement `summary.topics`, `summary.blooms`, `advanced_analytics.time_analysis`
 /`confidence_signals`, `historical_summary`, or `action_plan` — all of which
 §8.4 and §8.7 (Screen N) document as part of the real contract, sourced from
 `ExamsController::buildPerformanceSummaries()`/`buildActionPlan()`/
 `buildAdvancedAnalytics()` on the web side. These were deliberately scoped out
-of the prototype (no Bloom/topic/timing data exists in the mock's question
-fixtures to make them meaningful) — the real backend work in §8.4 should still
+of the prototype (no Bloom/topic/timing data existed in its question fixtures
+to make them meaningful) — the real backend work in §8.4 should still
 implement the full contract, not the narrowed prototype subset.
 
 Everything else in §8.1–§8.9 (the session-vs-stateless architectural gap, the
 proposed endpoint contract, the security/integrity behaviors) remains a design
-spec for backend work that has not started — the prototype only proves out the
-mobile-side contract and UX against a stand-in.
+spec for backend work that has not started — the prototype only proved out the
+mobile-side contract and UX against a stand-in that no longer exists.

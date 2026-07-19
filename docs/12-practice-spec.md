@@ -3,10 +3,9 @@
 Covers doc 05's screens H (Practice List), I (Objective Detail), J (Quiz
 Runner), K (Quiz Review). Verified against `/Users/saaz/Projects/zziippee`.
 Practice already has a **mobile-side prototype** (`app/assessment/[id]/quiz.tsx`,
-`review.tsx`, `src/api/hooks/practice.ts`) built against `mock/server.mjs` —
-this doc specs the real contract that mock should converge toward, and flags
-where the real backend's actual behavior differs from what the prototype
-(reasonably) assumed.
+`review.tsx`, `src/api/hooks/practice.ts`) — this doc specs the real
+contract, and flags where the real backend's actual behavior differs from
+what the prototype (reasonably) assumed.
 
 ## 12.1 A real security-shaped finding — flag before wiring to production
 
@@ -26,9 +25,8 @@ answer key for every question before answering.
 `submitAnswer` already withholds them in Exam — before the real backend is
 safe to point mobile at.** Don't work around it client-side (e.g. "just don't
 render the field") — that's not a fix, the data is already on the device.
-The current mobile prototype's mock server does this correctly (withholds
-until after submit); flag this gap to whoever builds the real `/api/v1`
-wrapper so the wrapper doesn't just pass the leak through.
+Flag this gap to whoever builds the real `/api/v1` wrapper so the wrapper
+doesn't just pass the leak through.
 
 ## 12.2 Other verified findings
 
