@@ -41,9 +41,34 @@ navigating away and back (or a manual refresh).
   (no nav entry point pushes to it, and it starts a hardcoded domain slug
   instead of the current domain's). Fixing that wiring is separate,
   larger-scoped work.
-- Home screen's "Continue card" (docs/05-uiux-spec.md §5.4) — not touched.
+- Building out Home screen's "Continue card" (docs/05-uiux-spec.md §5.4) is
+  not touched — but it's already wired to *enter* the quiz runner
+  (`app/(tabs)/index.tsx:57`, `router.push` straight into
+  `/assessment/{id}/quiz`, bypassing the Objectives screen entirely), so the
+  pause flow below has to behave correctly from that entry point too, not
+  just from Objectives. See "Two entry points" under Behavior.
+
+  This card is currently dead code in practice: the real backend's
+  `/dashboard` (`CurriculumController::dashboard()`, verified against
+  `/Users/saaz/Projects/zziippee`) never populates a `continue` key, so
+  `cont` is always falsy and the card's `onPress` is a no-op
+  (`disabled={!cont}`). docs/11-home-courses-progress-spec.md already tracks
+  this as known missing backend work. Not a blocker for this design, but the
+  pause flow shouldn't hard-code an assumption that breaks the moment that
+  backend gap closes.
 
 ## Behavior
+
+**Two entry points.** There are exactly two places that navigate into
+`/assessment/{id}/quiz` (verified by grepping every `router.push`/`replace`
+into that route): the Objectives screen (`continuePractice`/`startPractice`,
+both `router.push`) and Home's Continue card (`router.push`, no `domain`
+param, currently unreachable per the note above). Both use `push`, never
+`replace`, and nothing deep-links into the quiz screen as an app's initial
+route — so there's always a real screen beneath it, and `router.back()`
+always lands on whichever of the two actually launched it. It does **not**
+always land on the Objectives screen specifically, so the pause flow can't
+assume that screen is what's underneath.
 
 **Quiz runner close button** (`app/assessment/[id]/quiz.tsx`):
 
@@ -54,8 +79,12 @@ navigating away and back (or a manual refresh).
   (`app/exam/[id]/runner.tsx:184-199`) and matches the intended UX already
   documented in docs/05-uiux-spec.md §5.4 ("close (×) → confirm pause/exit").
 - On **Pause**: call `POST /assessments/{id}/pause` via the existing
-  `usePauseAssessment` hook, then `router.back()` to the Objectives screen
-  already beneath it on the stack.
+  `usePauseAssessment` hook, then `router.back()` — this returns to whichever
+  screen actually launched the quiz (Objectives today; Home once its
+  Continue card is backed by real data). No explicit return-destination
+  param is needed: `router.back()` is already correct for both cases, and
+  both cases already get their cache invalidated (see Technical
+  implementation) so whichever screen it lands on refreshes immediately.
 - Any local selection on the current, not-yet-submitted question is
   discarded — only already-submitted answers are saved server-side (same as
   Exam).
@@ -69,10 +98,41 @@ navigating away and back (or a manual refresh).
 
 **Elapsed time for the pause call:** the quiz runner doesn't track a running
 timer today. Add a mount-time ref (`startedAtRef = useRef(Date.now())`) and
-compute `elapsedSeconds = (state?.elapsed_seconds ?? 0) +
-Math.round((Date.now() - startedAtRef.current) / 1000)` when pausing — the
-server-provided `elapsed_seconds` from the last `GET` plus wall-clock time
-spent in this runner session.
+compute:
+
+```
+sessionDelta = Math.max(0, Math.round((Date.now() - startedAtRef.current) / 1000))
+elapsedSeconds = (state?.elapsed_seconds ?? 0) + sessionDelta
+```
+
+`Math.max(0, ...)` on the delta specifically guards against a backward device
+clock producing a negative delta — without it, `elapsedSeconds` could come
+out *below* `state.elapsed_seconds`, which is the exact failure mode flagged
+below.
+
+**Known backend gap — `pause` doesn't cross-check the client's value.**
+Verified against `/Users/saaz/Projects/zziippee/app/Http/Controllers/Api/V1/PracticeController.php`:
+`pause()` (line 452-456) does `$elapsed = max(0, (int) $request->input('elapsed_seconds', 0))`
+and writes it straight to `duration_seconds` — it never derives elapsed time
+from `started_at` itself, even though `resume()` (line 188-196) shows the
+backend already has and uses that capability elsewhere. Two consequences:
+
+- A client that omits `elapsed_seconds` entirely zeroes out the recorded
+  duration (defaults to `0`).
+- Two devices open on the same assessment (or a stale local cache) can race:
+  whichever `pause` call lands last wins, even if it's carrying an older
+  elapsed value than what's already stored.
+
+This mobile repo can't fix `pause()` itself (`PracticeController.php` lives
+in the separate backend repo, out of scope here). The `Math.max(0, ...)`
+delta guard above prevents *this client* from ever regressing its own last
+known value, but it can't prevent a genuinely stale cross-device write — that
+requires `pause()` deriving elapsed from `started_at` server-side, mirroring
+what `resume()` already does. Flagging this here (matching this repo's
+existing convention of calling out real backend gaps inline, e.g. docs/03
+§3.1, §3.6) as a backend follow-up rather than something this design closes.
+`duration_seconds` isn't surfaced anywhere in the mobile UI today, so this is
+a data-integrity risk, not a user-visible one, for now.
 
 **Objectives screen Continue accessory**
 (`app/learn/[product]/domains/[domain]/index.tsx`): replace the current
@@ -113,7 +173,8 @@ icon asset, no backend change, and no decorative/fake percentage:
 - Import `Alert` from `react-native` and `usePauseAssessment` from
   `src/api/hooks/practice`.
 - Add `startedAtRef`, `pauseMutation = usePauseAssessment(id!, product!)`,
-  `confirmPause()`, and `doPause()` per the Behavior section above.
+  `confirmPause()`, and `doPause()` per the Behavior section above (including
+  the clamped `sessionDelta` computation).
 - Close button: `onPress={confirmPause}`, `disabled={pauseMutation.isPending}`.
 
 ## Testing
@@ -123,12 +184,21 @@ session flows — practice/exam progression, pause/resume — are verified
 against a real backend, not hand-mocked axios), this is verified manually
 against the dev backend rather than with a unit test:
 
-1. Start an objective practice, answer a question or two, tap × → Pause.
-2. Confirm the Objectives screen (already mounted beneath, not remounted)
-   shows the ring + "Continue" on that row immediately, no manual refresh.
-3. Tap Continue → confirm it resumes the same assessment id (not a fresh
+1. From the Objectives screen: start an objective practice, answer a
+   question or two, tap × → Pause. Confirm the Objectives screen (already
+   mounted beneath, not remounted) shows the ring + "Continue" on that row
+   immediately, no manual refresh.
+2. Tap Continue → confirm it resumes the same assessment id (not a fresh
    one) at the correct question/progress.
-4. Tap × → Cancel → confirm nothing is paused and the quiz continues
+3. Tap × → Cancel → confirm nothing is paused and the quiz continues
    uninterrupted.
-5. Repeat with airplane mode on during Pause → confirm the error alert shows
+4. Repeat with airplane mode on during Pause → confirm the error alert shows
    and the quiz screen doesn't navigate away.
+5. Inspect the paused `Assessment` row's `duration_seconds` directly (DB or
+   an admin view) after step 1 and confirm it reflects real elapsed time, not
+   `0` — this exercises the client's `elapsedSeconds` computation end to end.
+6. Home-entry path: not testable today (`/dashboard` never returns `continue`
+   on the real backend, so the card is disabled) — skip until that backend
+   gap closes. Once it does, re-run steps 1-2 launching from Home's Continue
+   card instead, confirming `router.back()` lands on Home and the card
+   refreshes via the `['dashboard']` invalidation.
