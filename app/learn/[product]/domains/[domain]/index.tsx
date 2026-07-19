@@ -6,6 +6,8 @@ import { Text } from '../../../../../src/components/Text';
 import { Icon } from '../../../../../src/components/Icon';
 import { PressableScale } from '../../../../../src/components/PressableScale';
 import { useObjectives, useStartObjective } from '../../../../../src/api/hooks/practice';
+import { ProgressRing } from '../../../../../src/components/ProgressRing';
+import { computeContinueProgress } from '../../../../../src/utils/practiceResume';
 import { useTheme, spacing, radius, continuousCurve } from '../../../../../src/theme/tokens';
 
 /** Objectives within one domain — pushed from the domains list. Every row is
@@ -97,9 +99,15 @@ export default function ObjectiveScreen() {
                       </PressableScale>
                     )}
                     {isUnfinished ? (
-                      <View style={[styles.continueBtn, { backgroundColor: t.orange }, continuousCurve]}>
-                        <Text variant="footnote" color="onColor" style={{ fontWeight: '700' }}>Continue</Text>
-                      </View>
+                      <ProgressRing
+                        progress={computeContinueProgress(lastAssessment.responses?.length, lastAssessment.total_questions)}
+                        size={32}
+                        strokeWidth={3}
+                        color={t.orange}
+                        track={t.fill}
+                      >
+                        <Icon name="play" size={12} color="#fff" filled />
+                      </ProgressRing>
                     ) : (
                       <View style={[styles.playBtn, { backgroundColor: t.blue }]}>
                         {busy ? <ActivityIndicator color="#fff" size="small" /> : <Icon name="play" size={14} color="#fff" filled />}
@@ -125,5 +133,4 @@ const styles = StyleSheet.create({
   objectiveCard: { flexDirection: 'row', alignItems: 'center', borderRadius: radius.cell, padding: spacing.lg, overflow: 'hidden' },
   playBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginLeft: spacing.sm },
   reviewBtn: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, marginLeft: spacing.sm },
-  continueBtn: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, marginLeft: spacing.sm },
 });
