@@ -70,6 +70,47 @@ export function useDomains(productSlug: string) {
   });
 }
 
+export interface ObjectiveSummary {
+  id: number;
+  number: string | null;
+  name: string;
+  slug: string;
+  questions_count: number;
+}
+export interface ObjectiveDomain {
+  id: number;
+  number: string | null;
+  name: string;
+  slug: string;
+  weight_percentage: number | null;
+  objectives: ObjectiveSummary[];
+}
+export interface ObjectiveLatestAssessment {
+  id: string;
+  status: 'in_progress' | 'paused' | 'completed';
+  score: number;
+  total_questions: number;
+}
+export interface ObjectivesResponse {
+  domains: ObjectiveDomain[];
+  /** Keyed by objective id (as a string, since it comes back through a JSON object). */
+  latestAssessments: Record<string, ObjectiveLatestAssessment>;
+}
+
+/**
+ * Objective tree with each objective's latest practice attempt — the `/domains`
+ * endpoint above only carries domain-level `latestAssessments` (domain tests),
+ * not per-objective ones, so a "last score" per objective must come from here
+ * (`CurriculumController::objectives`) instead.
+ */
+export function useObjectives(productSlug: string) {
+  return useQuery({
+    queryKey: ['objectives', productSlug],
+    queryFn: () => getData<ObjectivesResponse>(`/learn/${productSlug}/objectives`),
+    staleTime: 60 * 1000,
+  });
+}
+
 /**
  * Resume-aware fetch of the current question for an assessment. `productSlug` is
  * required because the real backend nests assessment routes under
@@ -165,6 +206,7 @@ export function useAnswer(assessmentId: string, productSlug: string) {
         old ? { ...old, progress: res.progress } : old,
       );
       qc.invalidateQueries({ queryKey: ['dashboard'] });
+      if (res.is_done) qc.invalidateQueries({ queryKey: ['objectives', productSlug] });
     },
   });
 }
