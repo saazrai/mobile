@@ -50,13 +50,18 @@ doesn't just pass the leak through.
   (`{answered, estimatedTotal, currentDifficulty, minQuestions}`, itself a
   mix of cases). **Normalize to one convention in the API wrapper** — don't
   propagate this inconsistency into the mobile contract.
-- **"Done" response omits the answer key on purpose** (`:553-559`) —
-  `{saved:true, is_correct, is_done:true, mastery:{level,label},
-  redirect:<review url>}`. This is the one place the current backend
-  correctly withholds `correct_options`/`justifications` (they were already
-  sent earlier with the leak in §12.1, so withholding here doesn't actually
-  protect anything — another reason §12.1 needs a real fix, not a
-  patch-around).
+- **"Done" response used to omit the answer key — fixed 2026-07-20, no longer
+  true.** `Api\V1\PracticeController::saveAnswer()`'s adaptive `$isDone`
+  branch previously returned only `{saved:true, is_correct, is_done:true,
+  mastery, score}` — no `correct_options`, `justifications`, or
+  `adaptive_progress` for the final question. That broke the mobile Quiz
+  Runner's reveal state for the last question specifically: no rationale
+  text, and (since `adaptive_progress` was also missing) the header's
+  question counter fell back to 1. The branch now mirrors the non-done
+  branch below and additionally returns `correct_options`, `justifications`,
+  and `adaptive_progress` on completion — see
+  `tests/Feature/Api/PracticeControllerTest.php` ("saveAnswer reveals
+  correct_options and justifications for the final question too").
 - **Options are shuffled deterministically per-question, not per-user.**
   `OptionShuffler::shuffle()` (`app/Exam/Support/OptionShuffler.php:18-40`)
   seeds `mt_srand(crc32($questionId))` — every learner sees the identical
@@ -94,7 +99,7 @@ table describes the *corrected* behavior, not the current leaky one).
 |---|---|---|---|
 | POST | `/practice/objectives/{objective}/start` | → `{assessment_id, question, progress}` | `question` **must not** include `correct_options`/`justifications` — see §12.1 |
 | GET | `/assessments/{assessment}` | → `{question, progress, status}` (resume-aware) | Same withholding rule applies on resume |
-| POST | `/assessments/{assessment}/answer` | `{question_id, selected_options[], question_elapsed_seconds}` → not-done: `{is_correct, correct_options, justifications, is_done:false, next_question (answer-key withheld), progress}`; done: `{is_correct, is_done:true, mastery, review_url}` | `correct_options`/`justifications` for the *just-answered* question are fine to include (reveal-after-submit, same rule as Exam's `/review`) — only the *next* question's key must stay withheld |
+| POST | `/assessments/{assessment}/answer` | `{question_id, selected_options[], question_elapsed_seconds}` → not-done: `{is_correct, correct_options, justifications, is_done:false, next_question (answer-key withheld), progress}`; done: `{is_correct, correct_options, justifications, is_done:true, mastery, score, progress}` | `correct_options`/`justifications` for the *just-answered* question are fine to include (reveal-after-submit, same rule as Exam's `/review`) — only the *next* question's key must stay withheld. This now applies identically whether or not the assessment just completed (fixed 2026-07-20 — see §12.2) |
 | GET | `/assessments/{assessment}/review` | → `{assessment{score,mastery,difficulty_history}, questions[]}` | Matches doc 03 |
 | POST | `/practice/domains/{domain}/start` | → `{assessment_id, questions[], progress}` | Domain tests: send the **full question set** up front (fixed preset, doc 03's "pre-selected" framing was actually right for this one) since there's no adaptive selection to hide |
 | POST | `/assessments/{assessment}/answer` (domain variant) | `{question_id, selected_options[]}` → `{saved:true, progress}` only | **No per-answer feedback** — reflects `DomainsController::saveAnswer`'s real behavior (§12.2). Don't build a reveal UI for this path. |
@@ -109,6 +114,16 @@ server-side, no mobile code changes needed. What **does** need new mobile
 work once this is real: a distinct, no-reveal runner UX for domain tests
 (§12.2) — the existing `quiz.tsx` assumes per-question `is_correct` always
 comes back, which domain tests will never provide.
+
+`quiz.tsx` also carries a defensive fallback (`useReview` merged in when the
+just-answered question comes back with an empty `correct_options`) for
+whatever backend deployment hasn't picked up the §12.2 "done" response fix
+yet — `/review` independently returns full per-question detail (including
+the final question) from stored records, so it can backfill the reveal even
+if a given `/answer` response is still the old shape. Once every environment
+is running the fixed controller this fallback is dead code and can be
+removed, but it's cheap insurance in the meantime and also warms the
+`/review` cache before the learner taps "See results."
 
 ## 12.5 Corrections to existing docs
 

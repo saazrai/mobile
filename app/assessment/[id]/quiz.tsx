@@ -10,7 +10,7 @@ import { Icon } from '../../../src/components/Icon';
 import { PressableScale } from '../../../src/components/PressableScale';
 import { ProgressRing } from '../../../src/components/ProgressRing';
 import { ApiRequestError } from '../../../src/api/client';
-import { useAssessment, useAnswer, usePauseAssessment, type Question, type AnswerResult } from '../../../src/api/hooks/practice';
+import { useAssessment, useAnswer, usePauseAssessment, useReview, type Question, type AnswerResult } from '../../../src/api/hooks/practice';
 import { computeElapsedSeconds } from '../../../src/utils/practiceResume';
 import { OptionContent } from '../../../src/components/OptionContent';
 import { questionMarkdownStyle } from '../../../src/components/markdownStyles';
@@ -37,6 +37,14 @@ export default function QuizRunner() {
   const isMultiSelect = expected > 1;
   const revealed = result !== null;
   const atCap = !revealed && isMultiSelect && selected.length >= expected;
+
+  // The real backend's "done" answer response withholds correct_options/justifications for
+  // the final question entirely (docs/12-practice-spec.md §12.2). /review has full per-question
+  // detail for every question — including the last — since it reads from stored records rather
+  // than the answer response, so fall back to it for the final question's reveal.
+  const needsReviewFallback = revealed && !!result?.is_done && (result?.correct_options?.length ?? 0) === 0;
+  const { data: reviewData } = useReview(needsReviewFallback ? id : undefined, needsReviewFallback ? product : undefined);
+  const reviewFallbackQ = needsReviewFallback ? reviewData?.questions.find((q) => q.id === current?.id) : undefined;
 
   const toggle = (opt: string) => {
     if (revealed) return;
@@ -101,11 +109,21 @@ export default function QuizRunner() {
     }
   }
 
-  const correctOpts = result?.correct_options ?? [];
+  const correctOpts = result?.correct_options?.length ? result.correct_options : (reviewFallbackQ?.correct_options ?? []);
+  const justifications = result?.justifications?.length ? result.justifications : (reviewFallbackQ?.justifications ?? []);
+  // Once the /review fallback (or the live response) actually has an answer key, use it.
+  // Otherwise (still loading, or truly unavailable) fall back to the overall is_correct for
+  // whatever the learner picked instead of rendering every selection as "wrong" for lack of
+  // a key to match against.
+  const hasAnswerKey = correctOpts.length > 0;
   const optState = (opt: string): 'idle' | 'sel' | 'right' | 'wrong' => {
     if (!revealed) return selected.includes(opt) ? 'sel' : 'idle';
-    if (correctOpts.includes(opt)) return 'right';
-    if (selected.includes(opt)) return 'wrong';
+    if (hasAnswerKey) {
+      if (correctOpts.includes(opt)) return 'right';
+      if (selected.includes(opt)) return 'wrong';
+      return 'idle';
+    }
+    if (selected.includes(opt)) return result!.is_correct ? 'right' : 'wrong';
     return 'idle';
   };
   const radioColor = { idle: t.label3, sel: t.blue, right: t.green, wrong: t.red };
@@ -141,8 +159,7 @@ export default function QuizRunner() {
             {current.options.map((opt, i) => {
               const s = optState(opt);
               const blocked = atCap && !selected.includes(opt);
-              const justifs = result?.justifications ?? [];
-              const rationale = revealed ? justifs[i] : undefined;
+              const rationale = revealed ? justifications[i] : undefined;
               return (
                 <PressableScale
                   key={i}

@@ -96,6 +96,12 @@ export interface ObjectivesResponse {
   domains: ObjectiveDomain[];
   /** Keyed by objective id (as a string, since it comes back through a JSON object). */
   latestAssessments: Record<string, ObjectiveLatestAssessment>;
+  /**
+   * Latest *completed* attempt per objective — kept separate from
+   * `latestAssessments` so that a newer in-progress/paused attempt doesn't
+   * hide the ability to review the last completed one.
+   */
+  latestCompletedAssessments: Record<string, ObjectiveLatestAssessment>;
 }
 
 /**
@@ -109,6 +115,43 @@ export function useObjectives(productSlug: string) {
     queryKey: ['objectives', productSlug],
     queryFn: () => getData<ObjectivesResponse>(`/learn/${productSlug}/objectives`),
     staleTime: 60 * 1000,
+  });
+}
+
+export interface ObjectiveAttempt {
+  id: string;
+  status: 'in_progress' | 'paused' | 'completed';
+  score: number | null;
+  correct_answers: number | null;
+  total_questions: number | null;
+  answered_questions: number | null;
+  duration_seconds: number | null;
+  completed_at: string | null;
+  created_at: string;
+  can_resume: boolean;
+}
+export interface ObjectiveAttemptsResponse {
+  domain: { id: number; number: string | null; name: string; slug: string };
+  objective: { id: number; number: string | null; name: string; slug: string };
+  attempts: ObjectiveAttempt[];
+  summary: {
+    count: number;
+    bestScore: number;
+    averageScore: number;
+    latestScore: number;
+    scoreImprovement: number;
+    hasPrevious: boolean;
+    totalAttempts: number;
+    attemptsTruncated: boolean;
+  };
+}
+
+/** Full attempt history for one objective — every attempt, not just the latest. */
+export function useObjectiveAttempts(productSlug: string | undefined, objectiveSlug: string | undefined) {
+  return useQuery({
+    queryKey: ['objective-attempts', productSlug, objectiveSlug],
+    queryFn: () => getData<ObjectiveAttemptsResponse>(`/learn/${productSlug}/objectives/${objectiveSlug}/attempts`),
+    enabled: !!productSlug && !!objectiveSlug,
   });
 }
 
@@ -203,8 +246,13 @@ export function useAnswer(assessmentId: string, productSlug: string) {
       // Progress changed — synchronously patch the assessment cache so the
       // quiz runner's header counter reflects the new count on the very next render,
       // without waiting for an async refetch to complete.
+      //
+      // The real backend's "done" response omits progress entirely (docs/12-practice-spec.md
+      // §12.2), which normalizeProgress then defaults to all-zero — trusting that would reset
+      // the header's question counter to 1 while the final question's feedback is on screen.
+      // Bump the last known count locally instead in that case.
       qc.setQueryData(['assessment', assessmentId], (old: any) =>
-        old ? { ...old, progress: res.progress } : old,
+        old ? { ...old, progress: res.is_done ? { ...old.progress, answered: old.progress.answered + 1 } : res.progress } : old,
       );
       qc.invalidateQueries({ queryKey: ['dashboard'] });
       if (res.is_done) qc.invalidateQueries({ queryKey: ['objectives', productSlug] });
