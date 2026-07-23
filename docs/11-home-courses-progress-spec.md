@@ -84,13 +84,34 @@ doc 03 sketched.
 
 **Screen R — Progress:** the only real data source is
 `LearnerProficiencyService::summaryForProduct(userId, productId)`
-(`app/Services/LearnerProficiencyService.php:199`), returning a flat map
+(`app/Services/LearnerProficiencyService.php:204`), returning a flat map
 keyed `"{scope_type}:{scope_id}"` (`scope_type` = `objective|domain|course`)
-of `{proficiency_score, proficiency_level (1-5), proficiency_label, best_level,
-attempts_count, coverage, last_assessed_at}` — usable for a "mastery by
-domain" view. **Score history (a chartable time series) and a streak calendar
-have no backend support at all** — `Assessment.completed_at`/`score` rows
-exist and could be aggregated, but there's no existing service that does it;
+of `{proficiency_score, proficiency_level (1-6), proficiency_label, proficiency_color,
+best_level, attempts_count, coverage, last_assessed_at}` — usable for a "mastery by
+domain" view. **Fixed 2026-07-20 — no longer a separate call.** This map is
+now embedded directly under `data.proficiency` on both `CurriculumController::courseHome`
+(`GET /learn/{product}`, course-scope entry keyed `"course:{$course->id}"`) and
+`CurriculumController::objectives` (`GET /learn/{product}/objectives`,
+objective-scope entries keyed `"objective:{$objective->id}"`) — mobile's Course
+and Objectives screens render a `ProficiencyBadge` from these directly, no
+extra fetch needed. `bandForScore()` (`LearnerProficiencyService.php:281`) is
+the canonical score→level/label mapping — never duplicate its thresholds
+client-side.
+
+**Color is API data too, as of 2026-07-21 — don't hand-roll it.**
+`LearnerProficiencyService::colorsForLevel()` (`:311`) is the single source of
+truth for the hex palette (4 CVD-safe hue anchors × light/dark ×
+text/bg/border/dot), folded into `bandForScore()`'s `color` key and into every
+`proficiency_color` field `summaryForProduct()` emits. Mobile's
+`ProficiencyBadge` (`src/components/ProficiencyBadge.tsx`) reads
+`entry.proficiency_color.light`/`.dark` directly rather than computing its own
+red/amber/green mapping from `proficiency_level` — mirrors the web frontend's
+`Index.vue`/`Review.vue` switch from Tailwind `:class` utilities to `:style`
+hex for the same reason (the color is response data now, not something a
+build-time class scanner can see coming). **Score history (a chartable time
+series) and a streak calendar have no backend support at all** —
+`Assessment.completed_at`/`score` rows exist and could be aggregated, but
+there's no existing service that does it;
 this is new backend work, not a wrapper.
 
 ## 11.4 Proposed API surface
@@ -101,10 +122,10 @@ Supersedes doc 03 §3.2/§3.3's affected rows.
 |---|---|---|---|
 | GET | `/dashboard` | `{enrollments[], stats, recent_results[]}` | Matches what's real — **no** `continue`, `streak`, or `weakest_objective` keys unless §11.1 Option A is built |
 | GET | `/enrollments` | `Enrollment[]` (mirrors `Enrollment` fields) | Access gating uses the Order-paid check (§11.2), not `Enrollment.status`, regardless of what this list displays |
-| GET | `/learn/{product}` | `{course, product{types[]}, progress, stats}` | `progress.completed_lessons` is always `0` today — don't build a progress bar on it until that's real |
+| GET | `/learn/{product}` | `{course, product{types[]}, progress, stats, proficiency}` | `progress.completed_lessons` is always `0` today — don't build a progress bar on it until that's real. `proficiency` added 2026-07-20 (§11.3) |
 | GET | `/products/{product}` | Catalog detail incl. `exam_setting{duration_minutes,passing_percentage,question_count}` | Call this (not `/learn/{product}`) if Course Home needs exam stats |
-| GET | `/learn/{product}/domains` | `Domain[]` (no `mastery_percent`) + sibling `latest_assessments` keyed by domain_id | Corrects doc 03 §3.3 |
-| GET | `/progress/{product}` | `LearnerProficiencyService::summaryForProduct` shape, keyed by scope | New route; real data |
+| GET | `/learn/{product}/domains` | `Domain[]` (no `mastery_percent`) + sibling `latest_assessments` keyed by domain_id | Corrects doc 03 §3.3 — still no proficiency on *this* endpoint; use `/learn/{product}/objectives` (below) for that |
+| GET | `/learn/{product}/objectives` | `{domains[], latestAssessments, latestCompletedAssessments, proficiency}` | `proficiency` is the same `LearnerProficiencyService::summaryForProduct` map as `/learn/{product}` above, all scopes included (§11.3) |
 
 ## 11.5 Corrections to existing docs
 
@@ -113,5 +134,6 @@ Supersedes doc 03 §3.2/§3.3's affected rows.
 | 04 §4.3, 05 §5.4 (screen E) | Home shows "Continue" card, weakest-objective suggestion, streak, mastery rollup | None of this exists server-side; only enrollments/stats/recent-results are real (§11.1) |
 | 02 §2.6, 03 §3.2 | Access gated by `Enrollment.status === 'active'` + `expires_at` | Gated by `Order`/`OrderItem` paid status; `Enrollment` isn't the source of truth and `expires_at` isn't auto-enforced (§11.2) |
 | 03 §3.2 | `GET /learn/{product}` returns "course meta, exam settings" | Exam settings aren't in this payload — they're in `CatalogController::show` (§11.3) |
-| 03 §3.3 | Domains list includes "per-objective proficiency" | No `mastery_percent`/proficiency field on the domains-list response; proficiency is a separate call to `LearnerProficiencyService` |
+| 03 §3.3 | Domains list includes "per-objective proficiency" | Still not on `/learn/{product}/domains` specifically — proficiency lives on `/learn/{product}` (course scope) and `/learn/{product}/objectives` (objective scope), fixed 2026-07-20 (§11.3) |
+| This doc, §11.4 (earlier revision) | Proposed a new `GET /progress/{product}` route for proficiency | Shipped differently — embedded as `data.proficiency` directly on the existing `courseHome`/`objectives` endpoints instead of a new route (§11.3) |
 | 05 §5.3 (screen R) | Progress screen shows "score trends" and "streak calendar" | Neither has backend support today — new work, not a wrapper (§11.3) |

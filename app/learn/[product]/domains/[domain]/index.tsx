@@ -7,6 +7,7 @@ import { Icon } from '../../../../../src/components/Icon';
 import { PressableScale } from '../../../../../src/components/PressableScale';
 import { useObjectives, useStartObjective } from '../../../../../src/api/hooks/practice';
 import { ProgressRing } from '../../../../../src/components/ProgressRing';
+import { ProficiencyBadge } from '../../../../../src/components/ProficiencyBadge';
 import { computeContinueProgress } from '../../../../../src/utils/practiceResume';
 import { useTheme, spacing, radius, continuousCurve } from '../../../../../src/theme/tokens';
 
@@ -24,6 +25,8 @@ export default function ObjectiveScreen() {
   const domains = data?.domains ?? [];
   const domain = domains.find((d) => d.slug === domainSlug) ?? domains[0];
   const latestAssessments = data?.latestAssessments ?? {};
+  const latestCompletedAssessments = data?.latestCompletedAssessments ?? {};
+  const proficiency = data?.proficiency ?? {};
 
   const startPractice = async (objectiveSlug: string) => {
     try {
@@ -67,9 +70,12 @@ export default function ObjectiveScreen() {
           <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingTop: 0, gap: spacing.sm }} showsVerticalScrollIndicator={false}>
             {(domain.objectives ?? []).map((obj, i) => {
               const lastAssessment = latestAssessments[String(obj.id)];
-              const hasReview = lastAssessment != null && lastAssessment.status === 'completed';
+              const lastCompleted = latestCompletedAssessments[String(obj.id)];
+              const hasReview = lastCompleted != null;
+              const hasAnyAttempt = lastAssessment != null;
               const isUnfinished = lastAssessment != null && (lastAssessment.status === 'in_progress' || lastAssessment.status === 'paused');
-              const scoreColor = hasReview ? (lastAssessment.score >= 65 ? t.green : lastAssessment.score >= 45 ? t.orange : t.red) : undefined;
+              const scoreColor = hasReview ? (lastCompleted.score >= 65 ? t.green : lastCompleted.score >= 45 ? t.orange : t.red) : undefined;
+              const objProficiency = proficiency[`objective:${obj.id}`];
               const busy = startObjective.isPending && startObjective.variables === obj.slug;
               return (
                 <Animated.View key={obj.id || obj.slug || i} entering={FadeInDown.delay(Math.min(i, 8) * 60).duration(350)}>
@@ -85,18 +91,32 @@ export default function ObjectiveScreen() {
                       </Text>
                       {hasReview && (
                         <Text variant="footnote" color="label3" style={{ marginTop: 2 }}>
-                          Last score: <Text variant="footnote" style={{ color: scoreColor, fontWeight: '600' }}>{Math.round(lastAssessment.score)}%</Text>
+                          Last score: <Text variant="footnote" style={{ color: scoreColor, fontWeight: '600' }}>{Math.round(lastCompleted.score)}%</Text>
                         </Text>
                       )}
+                      {objProficiency && <ProficiencyBadge entry={objProficiency} style={styles.proficiencyBadge} />}
                     </View>
-                    {hasReview && (
-                      <PressableScale
-                        style={[styles.reviewBtn, { backgroundColor: t.fill }, continuousCurve]}
-                        onPress={() => router.push(`/assessment/${lastAssessment.id}/review?product=${product}&domain=${domainSlug}`)}
-                        accessibilityLabel={`Review your last attempt on ${obj.name}: ${Math.round(lastAssessment.score)}%`}
-                      >
-                        <Text variant="footnote" color="blue" style={{ fontWeight: '600' }}>Review</Text>
-                      </PressableScale>
+                    {(hasReview || hasAnyAttempt) && (
+                      <View style={styles.actions}>
+                        {hasReview && (
+                          <PressableScale
+                            style={[styles.iconBtn, { backgroundColor: t.fill }, continuousCurve]}
+                            onPress={() => router.push(`/assessment/${lastCompleted.id}/review?product=${product}&domain=${domainSlug}`)}
+                            accessibilityLabel={`Review your last attempt on ${obj.name}: ${Math.round(lastCompleted.score)}%`}
+                          >
+                            <Icon name="chart" size={14} color={t.blue} />
+                          </PressableScale>
+                        )}
+                        {hasAnyAttempt && (
+                          <PressableScale
+                            style={[styles.iconBtn, { backgroundColor: t.fill }, continuousCurve]}
+                            onPress={() => router.push(`/learn/${product}/objectives/${obj.slug}/attempts?domain=${domainSlug}`)}
+                            accessibilityLabel={`View all attempts for ${obj.name}`}
+                          >
+                            <Icon name="clock" size={14} color={t.blue} />
+                          </PressableScale>
+                        )}
+                      </View>
                     )}
                     {isUnfinished ? (
                       <ProgressRing
@@ -105,6 +125,7 @@ export default function ObjectiveScreen() {
                         strokeWidth={3}
                         color={t.orange}
                         track={t.fill}
+                        style={{ marginLeft: spacing.md }}
                       >
                         <Icon name="play" size={12} color={t.orange} filled />
                       </ProgressRing>
@@ -131,6 +152,8 @@ const styles = StyleSheet.create({
   navBtn: { padding: spacing.xs },
   sectionHeader: { paddingHorizontal: spacing.lg, marginTop: spacing.sm, marginBottom: spacing.sm, letterSpacing: 0.3, textTransform: 'uppercase' },
   objectiveCard: { flexDirection: 'row', alignItems: 'center', borderRadius: radius.cell, padding: spacing.lg, overflow: 'hidden' },
-  playBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginLeft: spacing.sm },
-  reviewBtn: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, marginLeft: spacing.sm },
+  proficiencyBadge: { marginTop: spacing.xs },
+  playBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginLeft: spacing.md },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginLeft: spacing.sm },
+  iconBtn: { width: 32, height: 32, borderRadius: radius.cell, alignItems: 'center', justifyContent: 'center' },
 });

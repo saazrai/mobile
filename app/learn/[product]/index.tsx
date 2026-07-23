@@ -9,8 +9,10 @@ import { Icon, type IconName } from '../../../src/components/Icon';
 import { PressableScale } from '../../../src/components/PressableScale';
 import { Section, Row } from '../../../src/components/List';
 import { Poster } from '../../../src/components/Poster';
+import { ProficiencyBadge } from '../../../src/components/ProficiencyBadge';
 import { useTheme, spacing, radius, hairline, continuousCurve, shadow, type Palette } from '../../../src/theme/tokens';
 import { courseMetaFor } from '../../../src/theme/courseArt';
+import type { ProficiencyMap } from '../../../src/api/hooks/practice';
 
 /** Real API shape per CurriculumController::courseHome — `product.types` is the
  * admin-managed, per-product list of study modes (dynamic, not a fixed enum).
@@ -25,6 +27,7 @@ interface ProductType {
 interface CourseHome {
   course: { id: number; name: string; code: string };
   product: { id: number; name: string; slug: string; types: ProductType[] };
+  proficiency: ProficiencyMap;
 }
 
 /** Maps known product-type slugs (admin-managed, shared with the web app's
@@ -49,6 +52,7 @@ export default function CourseScreen() {
 
   const c = data?.course;
   const meta = courseMetaFor(product);
+  const courseProficiency = c ? data?.proficiency?.[`course:${c.id}`] : undefined;
   const types = data?.product?.types ?? [];
   const examTypes = types.filter((ty) => ty.slug === 'exam');
   const otherTypes = types.filter((ty) => ty.slug !== 'exam');
@@ -105,6 +109,12 @@ export default function CourseScreen() {
       </Poster>
 
       <ScrollView style={styles.sheet} contentContainerStyle={{ paddingBottom: 150 }} showsVerticalScrollIndicator={false}>
+        {courseProficiency && (
+          <View style={styles.proficiencyRow}>
+            <Text variant="footnote" color="label2">Overall proficiency</Text>
+            <ProficiencyBadge entry={courseProficiency} />
+          </View>
+        )}
         {otherTypes.length > 0 && (
           <Section style={{ marginTop: spacing.lg }}>
             {otherTypes.map(renderTypeRow)}
@@ -144,6 +154,7 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, padding: spacing.xl },
   hero: { height: 230, paddingTop: 40 },
+  proficiencyRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.xl, marginTop: spacing.lg },
   heroCode: { position: 'absolute', top: 28, right: 20, fontSize: 96, fontWeight: '800', letterSpacing: -3, color: 'rgba(255,255,255,0.16)' },
   backBtn: {
     position: 'absolute',

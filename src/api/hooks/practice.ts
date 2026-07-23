@@ -92,6 +92,37 @@ export interface ObjectiveLatestAssessment {
   total_questions: number;
   responses?: { id: number; questionable_id: number; is_correct: boolean }[];
 }
+export interface ProficiencyColorShades {
+  text: string;
+  bg: string;
+  border: string;
+  dot: string;
+}
+/**
+ * Canonical hex palette from `LearnerProficiencyService::colorsForLevel()` — the
+ * single source both web and mobile render from. Never hand-roll this mapping
+ * client-side; pick `.light`/`.dark` by the active color scheme.
+ */
+export interface ProficiencyColor {
+  light: ProficiencyColorShades;
+  dark: ProficiencyColorShades;
+}
+export interface ProficiencyEntry {
+  proficiency_score: number;
+  proficiency_level: number;
+  proficiency_label: string;
+  proficiency_color: ProficiencyColor;
+  best_level: number;
+  attempts_count: number;
+  coverage: number;
+  last_assessed_at: string | null;
+}
+/**
+ * Flat map from `LearnerProficiencyService::summaryForProduct`, keyed
+ * `"{scope_type}:{scope_id}"` (`scope_type` one of course|domain|objective) — the
+ * same shape on every endpoint that exposes it (docs/11-home-courses-progress-spec.md §11.3).
+ */
+export type ProficiencyMap = Record<string, ProficiencyEntry>;
 export interface ObjectivesResponse {
   domains: ObjectiveDomain[];
   /** Keyed by objective id (as a string, since it comes back through a JSON object). */
@@ -102,6 +133,7 @@ export interface ObjectivesResponse {
    * hide the ability to review the last completed one.
    */
   latestCompletedAssessments: Record<string, ObjectiveLatestAssessment>;
+  proficiency: ProficiencyMap;
 }
 
 /**
@@ -293,6 +325,9 @@ export interface AssessmentReview {
     correct_answers: number;
     completed_at: string | null;
     mastery_label: string | null;
+    proficiency_label: string | null;
+    proficiency_level: number | null;
+    proficiency_color: ProficiencyColor | null;
     difficulty_history: number[];
     result_history: boolean[];
   };
@@ -317,6 +352,9 @@ function normalizeReview(payload: any): AssessmentReview {
       correct_answers: Number(payload.correct_answers ?? 0),
       completed_at: payload.completed_at ?? null,
       mastery_label: payload.mastery_label ?? null,
+      proficiency_label: payload.proficiency_label ?? null,
+      proficiency_level: payload.proficiency_level ?? null,
+      proficiency_color: payload.proficiency_color ?? null,
       difficulty_history: payload.difficulty_history ?? [],
       result_history: payload.result_history ?? [],
     },

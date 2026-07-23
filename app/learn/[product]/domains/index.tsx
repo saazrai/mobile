@@ -5,7 +5,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Text } from '../../../../src/components/Text';
 import { Icon } from '../../../../src/components/Icon';
 import { PressableScale } from '../../../../src/components/PressableScale';
-import { useDomains } from '../../../../src/api/hooks/practice';
+import { useDomains, useObjectives } from '../../../../src/api/hooks/practice';
+import { ProficiencyBadge } from '../../../../src/components/ProficiencyBadge';
 import { useTheme, spacing, radius, continuousCurve } from '../../../../src/theme/tokens';
 
 /** Domain browsing screen — lists domains with lessons count and latest assessment status.
@@ -17,6 +18,10 @@ export default function DomainsScreen() {
   const router = useRouter();
   const { product } = useLocalSearchParams<{ product: string }>();
   const { data, isLoading, isError } = useDomains(product);
+  // `/domains` itself carries no proficiency (docs/11-home-courses-progress-spec.md
+  // §11.3) — domain-scope entries only exist on `/objectives`'s proficiency map.
+  const { data: objectivesData } = useObjectives(product);
+  const proficiency = objectivesData?.proficiency ?? {};
 
   const rawDomains = !Array.isArray(data) && data && Array.isArray((data as any).domains)
     ? (data as any).domains
@@ -41,22 +46,26 @@ export default function DomainsScreen() {
         <Text variant="body" color="label2" style={{ textAlign: 'center', marginTop: spacing.xl }}>No domains available.</Text>
       ) : (
         <Animated.View entering={FadeInDown.duration(500).springify().damping(18)} style={styles.list}>
-          {domains.map((domain: any, i: number) => (
-            <PressableScale
-              key={domain.id || i}
-              onPress={() => router.push(`/learn/${product}/domains/${domain.slug}`)}
-              style={[styles.domainCard, { backgroundColor: t.cell }, continuousCurve]}
-              accessibilityLabel={`Domain ${domain.name}: ${domain.questions_count ?? 0} questions`}
-            >
-              <View style={{ flex: 1 }}>
-                <Text variant="headline" numberOfLines={2}>{domain.number ? `${domain.number}. ` : ''}{domain.name}</Text>
-                <Text variant="footnote" color="label2" style={{ marginTop: spacing.xs }}>
-                  {domain.questions_count ?? 0} questions · {(domain.lessons ?? []).length} lessons
-                </Text>
-              </View>
-              <Icon name="chevron" size={14} color={t.label3} />
-            </PressableScale>
-          ))}
+          {domains.map((domain: any, i: number) => {
+            const domainProficiency = proficiency[`domain:${domain.id}`];
+            return (
+              <PressableScale
+                key={domain.id || i}
+                onPress={() => router.push(`/learn/${product}/domains/${domain.slug}`)}
+                style={[styles.domainCard, { backgroundColor: t.cell }, continuousCurve]}
+                accessibilityLabel={`Domain ${domain.name}: ${domain.objectives_count ?? 0} objectives, ${domain.topics_count ?? 0} topics, ${domain.concepts_count ?? 0} concepts`}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text variant="headline" numberOfLines={2}>{domain.number ? `${domain.number}. ` : ''}{domain.name}</Text>
+                  <Text variant="footnote" color="label2" style={{ marginTop: spacing.xs }}>
+                    {domain.objectives_count ?? 0} objectives · {domain.topics_count ?? 0} topics · {domain.concepts_count ?? 0} concepts
+                  </Text>
+                  {domainProficiency && <ProficiencyBadge entry={domainProficiency} style={styles.proficiencyBadge} />}
+                </View>
+                <Icon name="chevron" size={14} color={t.label3} />
+              </PressableScale>
+            );
+          })}
         </Animated.View>
       )}
     </SafeAreaView>
@@ -70,4 +79,5 @@ const styles = StyleSheet.create({
   navBtn: { padding: spacing.xs },
   list: { flex: 1, paddingHorizontal: spacing.lg, gap: spacing.sm },
   domainCard: { flexDirection: 'row', alignItems: 'center', borderRadius: radius.cell, padding: spacing.lg, overflow: 'hidden' },
+  proficiencyBadge: { marginTop: spacing.xs },
 });

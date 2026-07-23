@@ -43,7 +43,10 @@ export default function ReviewScreen() {
   }
 
   const { assessment, questions } = data;
-  const scoreColor = assessment.score >= 80 ? t.green : assessment.score >= 50 ? t.orange : t.red;
+  // Canonical color from LearnerProficiencyService::colorsForLevel() (via the
+  // score band on this assessment) — don't recompute thresholds client-side,
+  // see docs/11-home-courses-progress-spec.md §11.3.
+  const scoreColor = assessment.proficiency_color?.[scheme === 'dark' ? 'dark' : 'light']?.text ?? t.blue;
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: t.sysBg }]}>
